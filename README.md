@@ -1,0 +1,2 @@
+# libdeepvac
+LibTorch project standard
