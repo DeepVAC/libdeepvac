@@ -14,11 +14,13 @@
 #include "deepvac.h"
 
 namespace deepvac {
-Deepvac::Deepvac(const char* model_path, c10::optional<c10::Device> device){
+
+Deepvac::Deepvac(const char* model_path, std::string device){
     GEMFIELD_SI;
     auto start = std::chrono::system_clock::now();
     try{
-        module_ = std::make_unique<torch::jit::script::Module>(torch::jit::load(model_path, device));
+        device_ = device;
+        module_ = std::make_unique<torch::jit::script::Module>(torch::jit::load(model_path, device_));
     }catch(const c10::Error& e){
         std::string msg = gemfield_org::format("%s: %s", "ERROR MODEL: ",e.what_without_backtrace() );
         GEMFIELD_E(msg.c_str());
@@ -29,33 +31,31 @@ Deepvac::Deepvac(const char* model_path, c10::optional<c10::Device> device){
         throw std::runtime_error(msg);
     }
     std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
-    std::string msg = gemfield_org::format("Model loading time: %s.", model_loading_duration.count());
+    std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
     GEMFIELD_I(msg.c_str());
 }
 
-std::vector<at::Tensor> Deepvac::operator() (cv::Mat& frame) {
+at::Tensor Deepvac::operator() (cv::Mat& frame) {
     GEMFIELD_SI;
     return getEmbFromCvMat(frame);
 }
 
-std::vector<at::Tensor> Deepvac::getEmbFromCvMat(cv::Mat& frame){
+at::Tensor Deepvac::getEmbFromCvMat(cv::Mat& frame){
     GEMFIELD_SI;
-    std::vector<at::Tensor> result;
-    
     auto input_tensor = torch::from_blob(frame.data, {1, frame.rows, frame.cols, 3});
     input_tensor = input_tensor.permute({0, 3, 1, 2});
     input_tensor = input_tensor.sub_(0.5).div_(0.5);
 
     std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(input_tensor.to(at::kCUDA));
+    inputs.push_back(input_tensor.to(device_));
 
     auto start = std::chrono::system_clock::now();
     at::Tensor output = module_->forward(inputs).toTensor();
     std::chrono::duration<double> forward_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("forward time: %f",  forward_duration.count() );
     GEMFIELD_DI(msg.c_str());
-    result.push_back(output);
-    return result;
+
+    return output;
 }
 
 } //namespace deepvac

@@ -9,11 +9,25 @@
 
 using namespace deepvac;
 int main(int argc, const char* argv[]) {
-    if (argc != 3) {
-        GEMFIELD_E("usage: deepvac <path-to-exported-torchscript-module> <img_path1>");
+    if (argc != 4) {
+        GEMFIELD_E("usage: deepvac <dumpEmb|predict> <path-to-exported-torchscript-module> <img_path1>");
         return -1;
     }
 
-    FeatureEmbFromDir emb_fromdir( Deepvac(argv[1], torch::kCUDA), argv[2]);
-    emb_fromdir();
+    FeatureEmbFromDir emb_fromdir( Deepvac(argv[2], "cuda:1"), argv[3]);
+    std::string feature_file = "gemfield_org.feature";
+    std::string op = argv[1];
+
+    if(op == "dumpEmb"){
+        emb_fromdir.dumpEmb(feature_file);
+        return 0;
+    }
+
+    if(op == "predict"){
+        emb_fromdir(feature_file);
+        return 0;
+    }
+
+    GEMFIELD_E("usage: deepvac <dumpEmb|predict> <path-to-exported-torchscript-module> <img_path1>");
+    return -1;
 }

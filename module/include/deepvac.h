@@ -24,12 +24,14 @@ class SYSZUX_EXPORT Deepvac : public std::enable_shared_from_this<Deepvac> {
         Deepvac(Deepvac&&) = default;
         Deepvac& operator=(Deepvac&&) = default;
         virtual ~Deepvac() = default;
-        explicit Deepvac(const char* model_path, c10::optional<c10::Device> device = c10::nullopt);
-        explicit Deepvac(std::string model_path, c10::optional<c10::Device> device = c10::nullopt):Deepvac(model_path.c_str(), device){}
-        virtual std::vector<at::Tensor> operator() (cv::Mat& frame);
+        explicit Deepvac(const char* model_path, std::string device = "cuda:0");
+        explicit Deepvac(std::string model_path, std::string device = "cuda:0"):Deepvac(model_path.c_str(), device){}
+        virtual at::Tensor operator() (cv::Mat& frame);
+        std::string getDevice(){return device_;}
 
     private:
-        virtual std::vector<at::Tensor> getEmbFromCvMat(cv::Mat& frame);
+        std::string device_;
+        at::Tensor getEmbFromCvMat(cv::Mat& frame);
         std::unique_ptr<torch::jit::script::Module> module_;
 };
 
