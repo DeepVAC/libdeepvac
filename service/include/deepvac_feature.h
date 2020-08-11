@@ -34,11 +34,12 @@ class FeatureEmbFromDir : public FeatureEmbBase<pairloader>{
         FeatureEmbFromDir(Deepvac&& deepvac, const char* url = ""): 
                 FeatureEmbBase<pairloader>(std::move(deepvac), pairloader(url)) {}
 
-        virtual void operator() ();
+        virtual void dumpEmb(std::string output_feature_file = "feature.gemfield");
+        virtual void operator()(std::string input_feature_file = "feature.gemfield");
+    private:
+        at::Tensor feature_;
+        std::vector<at::Tensor> emb_vec_;
+        std::vector<std::string> name_vec_;
 };
-
-// class FeatureEmbWriter : public FeatureEmbPredict{
-
-// };
 
 } //namespace deepvac
