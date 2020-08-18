@@ -5,7 +5,6 @@
  */
 
 #pragma once
-#include <opencv2/core/core.hpp>
 #include <torch/script.h>
 #include <string>
 #include <memory>
@@ -26,12 +25,12 @@ class SYSZUX_EXPORT Deepvac : public std::enable_shared_from_this<Deepvac> {
         virtual ~Deepvac() = default;
         explicit Deepvac(const char* model_path, std::string device = "cuda:0");
         explicit Deepvac(std::string model_path, std::string device = "cuda:0"):Deepvac(model_path.c_str(), device){}
-        virtual at::Tensor operator() (cv::Mat& frame);
+        virtual at::Tensor operator() (at::Tensor& t);
         std::string getDevice(){return device_;}
 
     private:
         std::string device_;
-        at::Tensor getEmbFromCvMat(cv::Mat& frame);
+        at::Tensor getEmbFromInputTensor(at::Tensor& t);
         std::unique_ptr<torch::jit::script::Module> module_;
 };
 

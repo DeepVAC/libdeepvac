@@ -4,9 +4,6 @@
  * You may not use this file except in compliance with the License.
  */
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 #include <filesystem>
 #include <chrono>
 #include <ctime> 
@@ -35,19 +32,16 @@ Deepvac::Deepvac(const char* model_path, std::string device){
     GEMFIELD_I(msg.c_str());
 }
 
-at::Tensor Deepvac::operator() (cv::Mat& frame) {
+at::Tensor Deepvac::operator() (at::Tensor& t) {
     GEMFIELD_SI;
-    return getEmbFromCvMat(frame);
+    return getEmbFromInputTensor(t);
 }
 
-at::Tensor Deepvac::getEmbFromCvMat(cv::Mat& frame){
+at::Tensor Deepvac::getEmbFromInputTensor(at::Tensor& t){
     GEMFIELD_SI;
-    auto input_tensor = torch::from_blob(frame.data, {1, frame.rows, frame.cols, 3});
-    input_tensor = input_tensor.permute({0, 3, 1, 2});
-    input_tensor = input_tensor.sub_(0.5).div_(0.5);
 
     std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(input_tensor.to(device_));
+    inputs.push_back(t.to(device_));
 
     auto start = std::chrono::system_clock::now();
     at::Tensor output = module_->forward(inputs).toTensor();

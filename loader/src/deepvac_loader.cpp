@@ -33,6 +33,14 @@ std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb){
     return frame;
 }
 
+std::optional<at::Tensor> img2tensor(std::string& img_path, bool is_rgb){
+    cv::Mat frame = img2CvMat(img_path, is_rgb).value();
+    auto input_tensor = torch::from_blob(frame.data, {1, frame.rows, frame.cols, 3});
+    input_tensor = input_tensor.permute({0, 3, 1, 2});
+    input_tensor = input_tensor.sub_(0.5).div_(0.5);
+    return input_tensor;
+}
+
 const std::string RecursiveFileIter::operator*() const {
     std::string p = (*walker_).path(); 
     return p;
@@ -43,12 +51,7 @@ const std::optional<cv::Mat> CvMatIter::operator*() const {
     return img2CvMat(p);
 }
 
-const std::tuple<std::string, std::optional<cv::Mat>> FileCvMatPairIter::operator*() const {
-    std::string p = (*walker_).path();
-    return {p, img2CvMat(p)};
-}
-
-const std::tuple<std::string, std::optional<cv::Mat>> ImgFileCvMatPairIter::operator*() const {
+const std::tuple<std::string, std::optional<at::Tensor>> ImgFileInputTensorPairIter::operator*() const {
     std::string p = (*walker_).path();
     std::string suffix = std::filesystem::path(p).extension();
 
@@ -61,7 +64,8 @@ const std::tuple<std::string, std::optional<cv::Mat>> ImgFileCvMatPairIter::oper
     if(suffix_.find(suffix) == suffix_.end() ){
         return {p, std::nullopt};
     }
-    return {p, img2CvMat(p)};
+
+    return {p, img2tensor(p)};
 }
 
 //loader that based on std container.

@@ -9,10 +9,12 @@
 #include <tuple>
 #include <filesystem>
 #include <unordered_set>
+#include <torch/script.h>
 #include <opencv2/core/core.hpp>
 namespace deepvac{
 
 std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb=false);
+std::optional<at::Tensor> img2tensor(std::string& img_path, bool is_rgb=false);
 
 template <typename SyszuxWalkerType>
 class DeepvacIterBase {
@@ -51,20 +53,11 @@ class CvMatIter : public RecursiveFileIterBase{
         bool is_rgb_;
 };
 
-class FileCvMatPairIter : public RecursiveFileIterBase{
+class ImgFileInputTensorPairIter : public RecursiveFileIterBase{
     public:
-        FileCvMatPairIter(const char* path, bool is_rgb=false) : RecursiveFileIterBase(path),is_rgb_(is_rgb) {}
-        FileCvMatPairIter(bool is_rgb=false) : RecursiveFileIterBase(),is_rgb_(is_rgb) {}
-        virtual const std::tuple<std::string, std::optional<cv::Mat>> operator*() const;
-    private:
-        bool is_rgb_;
-};
-
-class ImgFileCvMatPairIter : public FileCvMatPairIter{
-    public:
-        ImgFileCvMatPairIter(const char* path, bool is_rgb=false) : FileCvMatPairIter(path),is_rgb_(is_rgb) {}
-        ImgFileCvMatPairIter(bool is_rgb=false) : FileCvMatPairIter(),is_rgb_(is_rgb) {}
-        virtual const std::tuple<std::string, std::optional<cv::Mat>> operator*() const;
+        ImgFileInputTensorPairIter(const char* path, bool is_rgb=false) : RecursiveFileIterBase(path),is_rgb_(is_rgb) {}
+        ImgFileInputTensorPairIter(bool is_rgb=false) : RecursiveFileIterBase(),is_rgb_(is_rgb) {}
+        virtual const std::tuple<std::string, std::optional<at::Tensor>> operator*() const;
     private:
         bool is_rgb_;
         std::unordered_set<std::string> suffix_ {".jpg",".jpeg",".png"};
