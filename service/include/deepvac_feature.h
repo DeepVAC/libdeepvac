@@ -28,7 +28,7 @@ class FeatureEmbBase{
         Deepvac deepvac_;
 };
 
-using pairloader = DeepvacRecursiveFileLoader<ImgFileCvMatPairIter>;
+using pairloader = DeepvacRecursiveFileLoader<ImgFileInputTensorPairIter>;
 class FeatureEmbFromDir : public FeatureEmbBase<pairloader>{
     public:
         FeatureEmbFromDir(Deepvac&& deepvac, const char* url = ""): 
