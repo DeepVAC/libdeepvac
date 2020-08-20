@@ -58,5 +58,12 @@ file(GLOB EXAMPLES_LIST ${CMAKE_SOURCE_DIR}/examples/*/extract_feature.cpp)
 add_executable(extract_feature ${EXAMPLES_LIST})
 target_link_libraries(extract_feature ${OpenCV_LIBS})
 target_link_libraries(extract_feature "${TORCH_LIBRARIES}")
+
+find_library(CRYPTO crypto)
+if(CRYPTO)
+    message(STATUS "found crypto library: " ${CRYPTO})
+    target_link_libraries(extract_feature ${CRYPTO})
+endif()
+
 target_link_libraries(extract_feature libdeepvac_static)
 set_property(TARGET extract_feature PROPERTY CXX_STANDARD 17)

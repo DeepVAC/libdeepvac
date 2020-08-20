@@ -15,7 +15,7 @@
 
 namespace deepvac {
 //from pytorch 1.2, script::Module is now a reference type
-class SYSZUX_EXPORT Deepvac : public std::enable_shared_from_this<Deepvac> {
+class SYSZUX_EXPORT Deepvac{
     public:
         Deepvac() = delete;
         Deepvac(const Deepvac&) = delete;
@@ -25,6 +25,7 @@ class SYSZUX_EXPORT Deepvac : public std::enable_shared_from_this<Deepvac> {
         virtual ~Deepvac() = default;
         explicit Deepvac(const char* model_path, std::string device = "cuda:0");
         explicit Deepvac(std::string model_path, std::string device = "cuda:0"):Deepvac(model_path.c_str(), device){}
+        explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device = "cuda:0");
         virtual at::Tensor operator() (at::Tensor& t);
         std::string getDevice(){return device_;}
 
