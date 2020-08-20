@@ -9,6 +9,7 @@
 #include <ctime> 
 #include <iostream>
 #include "deepvac.h"
+#include "syszux_stream_buffer.h"
 
 namespace deepvac {
 
@@ -18,6 +19,28 @@ Deepvac::Deepvac(const char* model_path, std::string device){
     try{
         device_ = device;
         module_ = std::make_unique<torch::jit::script::Module>(torch::jit::load(model_path, device_));
+    }catch(const c10::Error& e){
+        std::string msg = gemfield_org::format("%s: %s", "ERROR MODEL: ",e.what_without_backtrace() );
+        GEMFIELD_E(msg.c_str());
+        throw std::runtime_error(msg);
+    }catch(...){
+        std::string msg =  "Internal ERROR!";
+        GEMFIELD_E(msg.c_str());
+        throw std::runtime_error(msg);
+    }
+    std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
+    std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
+    GEMFIELD_I(msg.c_str());
+}
+
+Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
+    GEMFIELD_SI;
+    auto start = std::chrono::system_clock::now();
+    try{
+        SyszuxStreamBuffer databuf(buffer.data(), buffer.size());
+        std::istream is(&databuf);
+        device_ = device;
+        module_ = std::make_unique<torch::jit::script::Module>(torch::jit::load(is, device_));
     }catch(const c10::Error& e){
         std::string msg = gemfield_org::format("%s: %s", "ERROR MODEL: ",e.what_without_backtrace() );
         GEMFIELD_E(msg.c_str());
