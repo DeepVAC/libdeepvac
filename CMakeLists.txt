@@ -67,3 +67,8 @@ endif()
 
 target_link_libraries(extract_feature libdeepvac_static)
 set_property(TARGET extract_feature PROPERTY CXX_STANDARD 17)
+
+#test PriorBox
+file(GLOB EXAMPLES_LIST ${CMAKE_SOURCE_DIR}/examples/*/test_syszux_priorbox.cpp)
+add_executable(test_syszux_priorbox ${EXAMPLES_LIST})
+target_link_libraries(test_syszux_priorbox "${TORCH_LIBRARIES}" libdeepvac_static)
