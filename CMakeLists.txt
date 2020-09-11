@@ -16,7 +16,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 #add_definitions(-DGEMFIELD)
 
 #replace with your libtorch dir
-set(CMAKE_PREFIX_PATH /home/gemfield/libtorch/)
+#set(CMAKE_PREFIX_PATH /home/gemfield/libtorch/)
 
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
