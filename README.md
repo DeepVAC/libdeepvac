@@ -26,7 +26,6 @@ export CXX=/usr/bin/g++-9
 # create build directory
 mkdir build
 cd build
-#cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch/ ..
-cmake ..
+cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch/ ..
 cmake --build . --config Release
 ```
