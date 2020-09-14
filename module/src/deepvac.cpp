@@ -57,11 +57,12 @@ Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
 
 at::Tensor Deepvac::operator() (at::Tensor& t) {
     GEMFIELD_SI;
-    return getEmbFromInputTensor(t);
+    return forward(t);
 }
 
-at::Tensor Deepvac::getEmbFromInputTensor(at::Tensor& t){
+at::Tensor Deepvac::forward(at::Tensor& t){
     GEMFIELD_SI;
+    torch::NoGradGuard no_grad;
 
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(t.to(device_));

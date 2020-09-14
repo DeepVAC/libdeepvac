@@ -31,7 +31,7 @@ class SYSZUX_EXPORT Deepvac{
 
     private:
         std::string device_;
-        at::Tensor getEmbFromInputTensor(at::Tensor& t);
+        at::Tensor forward(at::Tensor& t);
         std::unique_ptr<torch::jit::script::Module> module_;
 };
 
