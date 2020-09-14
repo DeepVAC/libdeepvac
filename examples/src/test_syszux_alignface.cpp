@@ -16,17 +16,16 @@ int main(int argc, char** argv)
     }
 
     std::string img_path = argv[1];
-	cv::Mat img = cv::imread(img_path);
+    cv::Mat img = cv::imread(img_path);
 
-	std::vector<float> facial_5pts = {632.30804, 177.63857, 687.6927, 185.6925, 649.9065,
-						213.16966, 632.7789, 239.9633, 673.7113, 246.61923};
+    std::vector<float> facial_5pts = {632.30804, 177.63857, 687.6927, 185.6925, 649.9065,
+                                    213.16966, 632.7789, 239.9633, 673.7113, 246.61923};
 
-	cv::Mat facial_5pts_mat(facial_5pts);
-	facial_5pts_mat = facial_5pts_mat.t();
+    cv::Mat facial_5pts_mat(facial_5pts);
+    facial_5pts_mat = facial_5pts_mat.t();
 
-	gemfield_org::AlignFace align_face;
-	cv::Mat dst_img = align_face(img, facial_5pts_mat);
-
-	std::cout << dst_img.rows << std::endl;
-	cv::imwrite("./test_res.jpg", dst_img);
+    gemfield_org::AlignFace align_face;
+    cv::Mat dst_img = align_face(img, facial_5pts_mat);
+    std::cout << dst_img.rows << std::endl;
+    cv::imwrite("./test_res.jpg", dst_img);
 }
