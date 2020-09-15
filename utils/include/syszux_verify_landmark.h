@@ -9,5 +9,5 @@
 #include <vector>
 
 namespace gemfield_org{
-    bool filterFace(std::vector<float> bbox, std::vector<float> landmark, int min_face_size);
+    bool isValidLandmark(std::vector<float> bbox, std::vector<float> landmark, int min_face_size=24);
 }

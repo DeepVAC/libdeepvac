@@ -4,10 +4,10 @@
  *  You may not use this file except in compliance with the License.
  */
 
-#include "syszux_filter_face.h"
+#include "syszux_verify_landmark.h"
 
 namespace gemfield_org{
-bool filterFace(std::vector<float> bbox, std::vector<float> landmark, int min_face_size){
+bool isValidLandmark(std::vector<float> bbox, std::vector<float> landmark, int min_face_size){
     auto width = bbox[2]-bbox[0];
     auto height = bbox[3]-bbox[1];
     if (width < min_face_size || height < min_face_size){
