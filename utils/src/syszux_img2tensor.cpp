@@ -25,17 +25,26 @@ std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb){
     return frame;
 }
 
-std::optional<at::Tensor> cvMat2Tensor(cv::Mat& frame){
-    frame.convertTo(frame, CV_32FC3, 1.0f / 255.0f);
+std::optional<at::Tensor> cvMat2Tensor(cv::Mat& frame, bool is_normalize){
+    if (frame.rows == 0 or frame.cols == 0){
+        GEMFIELD_E("illegal img: wrong rows or cols.");
+        return std::nullopt;
+    }
+    if(is_normalize){
+        frame.convertTo(frame, CV_32FC3, 1.0f / 255.0f);
+    }
     auto input_tensor = torch::from_blob(frame.data, {1, frame.rows, frame.cols, 3});
     input_tensor = input_tensor.permute({0, 3, 1, 2});
-    input_tensor = input_tensor.sub_(0.5).div_(0.5);
     return input_tensor;
 }
 
-std::optional<at::Tensor> img2Tensor(std::string& img_path, bool is_rgb){
-    cv::Mat frame = img2CvMat(img_path, is_rgb).value();
-    return cvMat2Tensor(frame);
+std::optional<at::Tensor> img2Tensor(std::string& img_path, bool is_rgb, bool is_normalize){
+    auto frame_opt = img2CvMat(img_path, is_rgb);
+    if(!frame_opt){
+        return std::nullopt;
+    }
+    cv::Mat frame = frame_opt.value();
+    return cvMat2Tensor(frame,is_normalize);
 }
 
 }//namespace

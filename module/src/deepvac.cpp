@@ -65,6 +65,7 @@ at::Tensor Deepvac::forward(at::Tensor& t){
     torch::NoGradGuard no_grad;
 
     std::vector<torch::jit::IValue> inputs;
+    //t = t.sub_(0.5).div_(0.5);
     inputs.push_back(t.to(device_));
 
     auto start = std::chrono::system_clock::now();
@@ -75,21 +76,13 @@ at::Tensor Deepvac::forward(at::Tensor& t){
 
     return output;
 }
-
-at::Tensor Deepvac::forwardTuple(at::Tensor& t){
+std::vector<c10::IValue> Deepvac::forwardTuple(at::Tensor& t){
     GEMFIELD_SI;
     torch::NoGradGuard no_grad;
-
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(t.to(device_));
-
-    auto start = std::chrono::system_clock::now();
-    at::Tensor output = module_->forward(inputs).toTuple()->elements()[1].toTensor();
-    std::chrono::duration<double> forward_duration = std::chrono::system_clock::now() - start;
-    std::string msg = gemfield_org::format("forward time: %f",  forward_duration.count() );
-    GEMFIELD_DI(msg.c_str());
-
-    return output;
+    std::vector<c10::IValue> rc = module_->forward(inputs).toTuple()->elements();
+    return rc;
 }
 
 } //namespace deepvac

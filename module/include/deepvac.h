@@ -28,7 +28,7 @@ class SYSZUX_EXPORT Deepvac{
         explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device = "cuda:0");
         virtual at::Tensor operator() (at::Tensor& t);
         std::string getDevice(){return device_;}
-        at::Tensor forwardTuple(at::Tensor& t);
+        std::vector<c10::IValue> forwardTuple(at::Tensor& t);
         at::Tensor forward(at::Tensor& t);
 
     private:
