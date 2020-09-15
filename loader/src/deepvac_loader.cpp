@@ -39,7 +39,7 @@ const std::tuple<std::string, std::optional<at::Tensor>> ImgFileInputTensorPairI
         return {p, std::nullopt};
     }
 
-    return {p, gemfield_org::img2tensor(p)};
+    return {p, gemfield_org::img2Tensor(p)};
 }
 
 //loader that based on std container.
