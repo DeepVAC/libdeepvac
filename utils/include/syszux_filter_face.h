@@ -9,5 +9,5 @@
 #include <vector>
 
 namespace gemfield_org{
-    bool filterFace(cv::Mat img, std::vector<float> bbox, std::vector<float> landmark);
+    bool filterFace(std::vector<float> bbox, std::vector<float> landmark, int min_face_size);
 }
