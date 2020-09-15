@@ -13,9 +13,6 @@
 #include <opencv2/core/core.hpp>
 namespace deepvac{
 
-std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb=false);
-std::optional<at::Tensor> img2tensor(std::string& img_path, bool is_rgb=false);
-
 template <typename SyszuxWalkerType>
 class DeepvacIterBase {
     public:

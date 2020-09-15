@@ -28,10 +28,11 @@ class SYSZUX_EXPORT Deepvac{
         explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device = "cuda:0");
         virtual at::Tensor operator() (at::Tensor& t);
         std::string getDevice(){return device_;}
+        at::Tensor forwardTuple(at::Tensor& t);
+        at::Tensor forward(at::Tensor& t);
 
     private:
         std::string device_;
-        at::Tensor getEmbFromInputTensor(at::Tensor& t);
         std::unique_ptr<torch::jit::script::Module> module_;
 };
 

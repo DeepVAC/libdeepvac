@@ -8,6 +8,10 @@
 #include <cmath>
 
 namespace gemfield_org{
+at::Tensor PriorBox::forward(std::vector<int>&& img_size){
+    std::vector<int> t = std::move(img_size);
+    return this->forward(t);
+}
 at::Tensor PriorBox::forward(std::vector<int>& img_size){
     std::vector<float> anchors;
     std::vector<std::vector<int>> feature_maps;
