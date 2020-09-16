@@ -85,15 +85,16 @@ add_subdirectory(loader)
 add_subdirectory(module)
 add_subdirectory(service)
 
-#setup header files
-include_directories(${TORCH_INCLUDE_DIRS})
-message(STATUS "HEADER_DIR_LIST: " ${HEADER_DIR_LIST})
-include_directories(${HEADER_DIR_LIST})
-
-message(STATUS "SRC_LIST: " ${SRC_LIST})
-
 #add library
 add_library(deepvac SHARED ${SRC_LIST})
+target_include_directories(deepvac PUBLIC 
+    "$<INSTALL_INTERFACE:include/deepvac>"   
+    "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${HEADER_DIR_LIST}>"
+)
+
+set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)
+#target_compile_options(deepvac PRIVATE -Werror)
+#target_compile_features(deepvac PRIVATE cxx_std_17)
 
 #add examples
 add_subdirectory(examples)
@@ -105,6 +106,3 @@ install(FILES ${HEADER_FILE_LIST} DESTINATION "include/deepvac")
 
 install(EXPORT deepvac DESTINATION "share/deepvac")
 install(FILES ${PROJECT_SOURCE_DIR}/cmake/deepvac-config.cmake DESTINATION share/deepvac)
-
-
-
