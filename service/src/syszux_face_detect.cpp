@@ -47,7 +47,6 @@ std::optional<at::Tensor> SyszuxFaceDetect::operator()(cv::Mat frame){
         return std::nullopt;
     }
     auto input_tensor = input_tensor_opt.value();
-    //input_tensor -= (104, 117, 123); //change this accordingly
     auto output = deepvac_.forwardTuple(input_tensor);
     //Nx4    //Nx2    //Nx10
     auto loc = output[0].toTensor();
