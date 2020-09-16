@@ -26,7 +26,7 @@ std::optional<at::Tensor> SyszuxFaceDetect::operator()(cv::Mat frame){
     if(max_edge > max_hw){
         cv::resize(frame, frame, cv::Size(int(w*max_hw/max_edge), int(h*max_hw/max_edge)));
         h = frame.rows;
-	w = frame.cols;
+        w = frame.cols;
     }
     cv::Mat frame_ori = frame.clone();
 
@@ -52,11 +52,6 @@ std::optional<at::Tensor> SyszuxFaceDetect::operator()(cv::Mat frame){
     auto loc = output[0].toTensor();
     auto forward_conf = output[1].toTensor();
     auto landms = output[2].toTensor();
-
-    //std::cout<<loc.sizes()<<"\t :"<<loc<<std::endl;
-    //std::cout<<forward_conf.sizes()<<"\t :"<<forward_conf<<std::endl;
-    //std::cout<<landms.sizes()<<"\t :"<<landms<<std::endl;
-
     //gemfield
     torch::Tensor prior_output = prior_box_.forward({frame.rows, frame.cols});
     prior_output = prior_output.to(device_);

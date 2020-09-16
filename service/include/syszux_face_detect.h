@@ -10,7 +10,7 @@
 #include "syszux_priorbox.h"
 #include "syszux_nms.h"
 #include "syszux_align_face.h"
-#include "syszux_decode.h"
+#include "syszux_verify_landmark.h"
 #include "syszux_img2tensor.h"
 
 namespace deepvac{
@@ -31,6 +31,6 @@ class SyszuxFaceDetect{
     
     private:
         gemfield_org::PriorBox prior_box_;
-	gemfield_org::AlignFace align_face_;
+        gemfield_org::AlignFace align_face_;
 };
 } //namespace deepvac
