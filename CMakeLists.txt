@@ -1,13 +1,11 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(libdeepvac)
-
+project(deepvac)
+message(STATUS "You are building libdeepvac with mode: " ${CMAKE_BUILD_TYPE})
 # define library version
-set(libdeepvac_VERSION_MAJOR 1 CACHE STRING "major version" FORCE)
-set(libdeepvac_VERSION_MINOR 0 CACHE STRING "minor version" FORCE)
-set(libdeepvac_VERSION ${libdeepvac_VERSION_MAJOR}.${libdeepvac_VERSION_MINOR} CACHE STRING "version" FORCE)
+set(deepvac_version 1.0 CACHE STRING "version" FORCE)
 
-# some options
-option(libdeepvac_DEBUG_MODE "whether or not debug mode is activated" OFF)
+#options
+#option(deepvac_DEBUG_MODE "debug mode is activated" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_COMPILER /usr/bin/gcc-9)
@@ -48,6 +46,17 @@ macro (add_header_dir)
     set (HEADER_DIR_LIST ${HEADER_DIR_LIST} PARENT_SCOPE)
 endmacro()
 
+macro (add_syszux_headers)
+    file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_src ${ARGN})
+        message(STATUS "found header: " ${_src})
+        list (APPEND HEADER_FILE_LIST "${_src}")
+    endforeach()
+    if (_relPath)
+        set (HEADER_FILE_LIST ${HEADER_FILE_LIST} PARENT_SCOPE)
+    endif()
+endmacro()
+
 message(STATUS "OpenCV library status:")
 message(STATUS "    config: ${OpenCV_DIR}")
 message(STATUS "    version: ${OpenCV_VERSION}")
@@ -71,9 +80,14 @@ include_directories(${HEADER_DIR_LIST})
 message(STATUS "SRC_LIST: " ${SRC_LIST})
 
 #add library
-add_library(libdeepvac_static STATIC ${SRC_LIST})
+add_library(deepvac SHARED ${SRC_LIST})
 
 #add examples
 add_subdirectory(examples)
+
+message(STATUS "install headers: " ${HEADER_FILE_LIST})
+
+install(TARGETS deepvac DESTINATION "lib")
+install(FILES ${HEADER_FILE_LIST} DESTINATION "include/deepvac")
 
 
