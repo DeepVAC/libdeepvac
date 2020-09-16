@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(libdeepvac)
+project(deepvac)
+message(STATUS "You are building libdeepvac with mode: " ${CMAKE_BUILD_TYPE})
+# define library version
+set(deepvac_version 1.0 CACHE STRING "version" FORCE)
+
+#options
+#option(deepvac_DEBUG_MODE "debug mode is activated" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_COMPILER /usr/bin/gcc-9)
@@ -21,6 +27,36 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
 
+macro (add_syszux_sources)
+    file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_src ${ARGN})
+        message(STATUS "found src: " ${_src})
+        list (APPEND SRC_LIST "${_src}")
+    endforeach()
+    if (_relPath)
+        set (SRC_LIST ${SRC_LIST} PARENT_SCOPE)
+    endif()
+endmacro()
+
+macro (add_header_dir)
+    foreach (_header_dir ${ARGN})
+        message(STATUS "Add header include: " ${_header_dir})
+        list (APPEND HEADER_DIR_LIST "${_header_dir}")
+    endforeach()
+    set (HEADER_DIR_LIST ${HEADER_DIR_LIST} PARENT_SCOPE)
+endmacro()
+
+macro (add_syszux_headers)
+    file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_src ${ARGN})
+        message(STATUS "found header: " ${_src})
+        list (APPEND HEADER_FILE_LIST "${_src}")
+    endforeach()
+    if (_relPath)
+        set (HEADER_FILE_LIST ${HEADER_FILE_LIST} PARENT_SCOPE)
+    endif()
+endmacro()
+
 message(STATUS "OpenCV library status:")
 message(STATUS "    config: ${OpenCV_DIR}")
 message(STATUS "    version: ${OpenCV_VERSION}")
@@ -30,46 +66,28 @@ message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "TORCHLIB: ${TORCH_LIBRARIES}")
 message(STATUS "TORCH_HEADER: ${TORCH_INCLUDE_DIRS}")
 
+# add subdiretories
+add_subdirectory(utils)
+add_subdirectory(loader)
+add_subdirectory(module)
+add_subdirectory(service)
+
 #setup header files
 include_directories(${TORCH_INCLUDE_DIRS})
-include_directories(${CMAKE_SOURCE_DIR}/utils/include)
-include_directories(${CMAKE_SOURCE_DIR}/loader/include)
-include_directories(${CMAKE_SOURCE_DIR}/module/include)
-include_directories(${CMAKE_SOURCE_DIR}/service/include)
+message(STATUS "HEADER_DIR_LIST: " ${HEADER_DIR_LIST})
+include_directories(${HEADER_DIR_LIST})
 
-file(GLOB UTILS_LIST ${CMAKE_SOURCE_DIR}/utils/*/*.cpp)
-file(GLOB LOADER_LIST ${CMAKE_SOURCE_DIR}/loader/*/*.cpp)
-file(GLOB MODULE_LIST ${CMAKE_SOURCE_DIR}/module/*/*.cpp)
-file(GLOB SERVICE_LIST ${CMAKE_SOURCE_DIR}/service/*/*.cpp)
-#collect source code
-list(APPEND SRC_LIST ${UTILS_LIST})
-list(APPEND SRC_LIST ${LOADER_LIST})
-list(APPEND SRC_LIST ${MODULE_LIST})
-list(APPEND SRC_LIST ${SERVICE_LIST})
-
-message(STATUS ${SRC_LIST})
+message(STATUS "SRC_LIST: " ${SRC_LIST})
 
 #add library
-add_library(libdeepvac_static STATIC ${SRC_LIST})
+add_library(deepvac SHARED ${SRC_LIST})
 
-#main program
-include_directories(${CMAKE_SOURCE_DIR}/examples/include)
-file(GLOB SYSZUX_EXTRACT ${CMAKE_SOURCE_DIR}/examples/*/syszux_extract_feature.cpp)
+#add examples
+add_subdirectory(examples)
 
-find_library(CRYPTO crypto)
-if(CRYPTO)
-    message(STATUS "found crypto library: " ${CRYPTO})
-    add_executable(syszux_extract_feature ${SYSZUX_EXTRACT})
-    target_link_libraries(syszux_extract_feature ${OpenCV_LIBS} ${TORCH_LIBRARIES} ${CRYPTO} libdeepvac_static )
-    #set_property(TARGET syszux_extract_feature PROPERTY CXX_STANDARD 17)
-endif()
+message(STATUS "install headers: " ${HEADER_FILE_LIST})
 
-#test examples
-file( GLOB EXAMPLES_LIST ${CMAKE_SOURCE_DIR}/examples/*/test_*.cpp )
-foreach( testsyszuxfile ${EXAMPLES_LIST} )
-    get_filename_component(testfile "${testsyszuxfile}" NAME)
-    message(STATUS "Add test binary: ${testfile}")
-    string(REPLACE ".cpp" "" testname ${testfile} )
-    add_executable( ${testname} ${testsyszuxfile} )
-    target_link_libraries( ${testname} "${TORCH_LIBRARIES}" ${OpenCV_LIBS} libdeepvac_static )
-endforeach( testsyszuxfile ${EXAMPLES_LIST} )
+install(TARGETS deepvac DESTINATION "lib")
+install(FILES ${HEADER_FILE_LIST} DESTINATION "include/deepvac")
+
+
