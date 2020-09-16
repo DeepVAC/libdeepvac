@@ -17,7 +17,7 @@ SyszuxFaceDetect::SyszuxFaceDetect(Deepvac&& deepvac): deepvac_(std::move(deepva
     device_ = deepvac_.getDevice();
 }
 
-std::optional<at::Tensor> SyszuxFaceDetect::operator()(cv::Mat frame){
+std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     int h = frame.rows;
     int w = frame.cols;
     int c = frame.channels();
@@ -116,11 +116,14 @@ std::optional<at::Tensor> SyszuxFaceDetect::operator()(cv::Mat frame){
     cv::Mat landms_mat(landms.size(0), landms.size(1), CV_32F);
     std::memcpy((void *) dets_mat.data, dets.data_ptr(), sizeof(torch::kF32) * dets.numel());
     std::memcpy((void *) landms_mat.data, landms.data_ptr(), 4*sizeof(torch::kF32) * landms.numel());
-
+    
+    std::vector<cv::Mat> detecte_out;
     for(int i=0; i<dets_mat.rows; i++){
         auto landmark = landms_mat.row(i);
+	std::cout << landmark << std::endl;
         cv::Mat dst_img = align_face_(frame_ori, landmark);
-        cv::imwrite("./test.jpg", dst_img);
+        detecte_out.push_back(dst_img);
     }
+    return detecte_out;
 }
 } //namespace deepvac

@@ -23,7 +23,13 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
     auto tensor_out = tensor_out_opt.value();
-    auto detect_out = face_detect(tensor_out);
-
+    auto detect_out_opt = face_detect(tensor_out);
+    if(!detect_out_opt){
+        throw std::runtime_error("no face detected");
+    }
+    auto detect_out = detect_out_opt.value();
+    for (int i=0; i<detect_out.size(); i++){
+        cv::imwrite("./test_detect_face_"+std::to_string(i)+".jpg", detect_out[i]);
+    }
     return 0;
 }

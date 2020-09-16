@@ -23,7 +23,7 @@ class SyszuxFaceDetect{
         SyszuxFaceDetect& operator=(SyszuxFaceDetect&&) = default;
         virtual ~SyszuxFaceDetect() = default;
         SyszuxFaceDetect(Deepvac&& deepvac);
-        virtual std::optional<at::Tensor> operator() (cv::Mat frame);
+        virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
     
     protected:
         Deepvac deepvac_;
