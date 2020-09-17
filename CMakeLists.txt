@@ -105,8 +105,8 @@ set_property(
     SOURCE ${FLAGS_FILE_LIST}
     APPEND
     PROPERTY COMPILE_DEFINITIONS
-    face_detect_deepvac="${PROJECT_SOURCE_DIR}/cmake/face_detect.deepvac"
-    #"/home/gemfield/face_detect.deepvac"
+    face_detect_deepvac="/home/gemfield/face_detect.deepvac"
+    #"${PROJECT_SOURCE_DIR}/cmake/face_detect.deepvac"
 )
 
 target_compile_options(deepvac PRIVATE -Werror)
