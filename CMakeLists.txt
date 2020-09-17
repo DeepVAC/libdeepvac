@@ -43,7 +43,6 @@ find_package(OpenCV REQUIRED)
 macro (add_syszux_sources)
     file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
-        message(STATUS "found src: " ${_src})
         list (APPEND SRC_LIST "${_src}")
     endforeach()
     if (_relPath)
@@ -53,7 +52,6 @@ endmacro()
 
 macro (add_header_dir)
     foreach (_header_dir ${ARGN})
-        message(STATUS "Add header include: " ${_header_dir})
         list (APPEND HEADER_DIR_LIST "${_header_dir}")
     endforeach()
     set (HEADER_DIR_LIST ${HEADER_DIR_LIST} PARENT_SCOPE)
@@ -62,11 +60,20 @@ endmacro()
 macro (add_syszux_headers)
     file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
-        message(STATUS "found header: " ${_src})
         list (APPEND HEADER_FILE_LIST "${_src}")
     endforeach()
     if (_relPath)
         set (HEADER_FILE_LIST ${HEADER_FILE_LIST} PARENT_SCOPE)
+    endif()
+endmacro()
+
+macro (add_syszux_flags)
+    file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_src ${ARGN})
+        list (APPEND FLAGS_FILE_LIST "${_src}")
+    endforeach()
+    if (_relPath)
+        set (FLAGS_FILE_LIST ${FLAGS_FILE_LIST} PARENT_SCOPE)
     endif()
 endmacro()
 
@@ -93,7 +100,16 @@ target_include_directories(deepvac PUBLIC
 )
 
 set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)
-#target_compile_options(deepvac PRIVATE -Werror)
+
+set_property(
+    SOURCE ${FLAGS_FILE_LIST}
+    APPEND
+    PROPERTY COMPILE_DEFINITIONS
+    face_detect_deepvac="/home/gemfield/face_detect.deepvac"
+    #"${PROJECT_SOURCE_DIR}/cmake/face_detect.deepvac"
+)
+
+target_compile_options(deepvac PRIVATE -Werror)
 #target_compile_features(deepvac PRIVATE cxx_std_17)
 
 #add examples
