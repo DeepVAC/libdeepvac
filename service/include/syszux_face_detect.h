@@ -8,6 +8,9 @@
 
 #include "deepvac.h"
 #include "syszux_priorbox.h"
+#include "syszux_nms.h"
+#include "syszux_align_face.h"
+#include "syszux_verify_landmark.h"
 #include "syszux_img2tensor.h"
 
 namespace deepvac{
@@ -20,7 +23,7 @@ class SyszuxFaceDetect{
         SyszuxFaceDetect& operator=(SyszuxFaceDetect&&) = default;
         virtual ~SyszuxFaceDetect() = default;
         SyszuxFaceDetect(Deepvac&& deepvac);
-        virtual std::optional<at::Tensor> operator() (cv::Mat frame);
+        virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
     
     protected:
         Deepvac deepvac_;
@@ -28,5 +31,6 @@ class SyszuxFaceDetect{
     
     private:
         gemfield_org::PriorBox prior_box_;
+        gemfield_org::AlignFace align_face_;
 };
 } //namespace deepvac

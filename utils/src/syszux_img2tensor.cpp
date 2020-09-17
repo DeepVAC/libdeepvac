@@ -46,5 +46,4 @@ std::optional<at::Tensor> img2Tensor(std::string& img_path, bool is_rgb, bool is
     cv::Mat frame = frame_opt.value();
     return cvMat2Tensor(frame,is_normalize);
 }
-
 }//namespace
