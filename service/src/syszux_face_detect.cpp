@@ -13,9 +13,8 @@
 
 namespace deepvac{
 
-SyszuxFaceDetect::SyszuxFaceDetect(Deepvac&& deepvac): deepvac_(std::move(deepvac)), prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){
-    device_ = deepvac_.getDevice();
-}
+SyszuxFaceDetect::SyszuxFaceDetect(std::string device):Deepvac("/home/gemfield/detect.gemfield", device),
+    prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
 std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     int h = frame.rows;
@@ -41,7 +40,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     input_tensor[0][1] = input_tensor[0][1].sub_(117);
     input_tensor[0][2] = input_tensor[0][2].sub_(123);
     
-    auto output = deepvac_.forwardTuple(input_tensor);
+    auto output = forwardTuple(input_tensor);
     //Nx4    //Nx2    //Nx10
     auto loc = output[0].toTensor();
     auto forward_conf = output[1].toTensor();
