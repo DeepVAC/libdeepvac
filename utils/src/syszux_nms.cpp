@@ -61,6 +61,6 @@ torch::Tensor nms(torch::Tensor& dets, float threshold)
         auto sorted_index_should_left = torch::nonzero(index_whether_swallowed_by_top).squeeze();
         sorted_index = second2last_index.index_select(0, sorted_index_should_left);
     }
-    return keep;
+    return keep.slice(0, 0, keep_index);
 }
 }//nms
