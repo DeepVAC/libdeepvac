@@ -28,25 +28,19 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
         h = frame.rows;
         w = frame.cols;
     }
-    cv::Mat frame_ori = frame.clone();
 
+    cv::Mat frame_ori = frame.clone(); 
     frame.convertTo(frame, CV_32F);
-    std::vector<cv::Mat> channels, src;
-    cv::split(frame, channels);
-    cv::Mat B = channels.at(0) - 104;
-    cv::Mat G = channels.at(1) - 117;
-    cv::Mat R = channels.at(2) - 123;
-    src.push_back(B);
-    src.push_back(G);
-    src.push_back(R);
-    cv::merge(src, frame);
-
     auto input_tensor_opt = gemfield_org::cvMat2Tensor(frame, false);
 
     if(!input_tensor_opt){
         return std::nullopt;
     }
     auto input_tensor = input_tensor_opt.value();
+    input_tensor[0][0] = input_tensor[0][0].sub_(104);
+    input_tensor[0][1] = input_tensor[0][1].sub_(117);
+    input_tensor[0][2] = input_tensor[0][2].sub_(123);
+    
     auto output = deepvac_.forwardTuple(input_tensor);
     //Nx4    //Nx2    //Nx10
     auto loc = output[0].toTensor();
@@ -102,7 +96,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     keep = keep.slice(0, 0, keep_top_k);
     dets = dets.index(keep);
     landms = landms.index(keep);
-    std::cout << "detected " << dets.size(0) << "faces@" << std::endl;
+    std::cout << "detected " << dets.size(0) << "faces" << std::endl;
 
     if(dets.size(0)==0){
         return std::nullopt;
@@ -120,7 +114,6 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     std::vector<cv::Mat> detecte_out;
     for(int i=0; i<dets_mat.rows; i++){
         auto landmark = landms_mat.row(i);
-	std::cout << landmark << std::endl;
         cv::Mat dst_img = align_face_(frame_ori, landmark);
         detecte_out.push_back(dst_img);
     }
