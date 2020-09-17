@@ -58,7 +58,7 @@ cv::Mat AlignFace::getAffineTransform(cv::Mat& facial_5pts)
 {
     cv::Mat trans1 = findNonereflectiveSimilarity(facial_5pts, ref_facial_5pts_);
 	
-    cv::Mat xyR(ref_facial_5pts_);
+    cv::Mat xyR = ref_facial_5pts_.clone();
     xyR.col(0) = -1 * xyR.col(0);
 
     cv::Mat trans2r = findNonereflectiveSimilarity(facial_5pts, xyR);
