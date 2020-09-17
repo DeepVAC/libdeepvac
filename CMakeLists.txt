@@ -1,11 +1,24 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-project(deepvac)
-message(STATUS "You are building libdeepvac with mode: " ${CMAKE_BUILD_TYPE})
-# define library version
-set(deepvac_version 1.0 CACHE STRING "version" FORCE)
+# Copyright (c) 2020 Gemfield <gemfield@civilnet.cn>
+# This file is part of libdeepvac, licensed under the GPLv3 (the "License")
+# You may not use this file except in compliance with the License.
 
-#options
+cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+project(deepvac
+    VERSION 0.1.0
+    DESCRIPTION "A library for using PyTorch model in C++."
+    HOMEPAGE_URL "https://github.com/deepvac/libdeepvac"
+    LANGUAGES CXX)
+
 #option(deepvac_DEBUG_MODE "debug mode is activated" OFF)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(LINUX TRUE)
+else()
+    set(LINUX FALSE)
+endif()
+
+if(NOT LINUX)
+    message(FATAL_ERROR "deepvac does not support platform: " ${CMAKE_SYSTEM_NAME})
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_COMPILER /usr/bin/gcc-9)
@@ -72,22 +85,24 @@ add_subdirectory(loader)
 add_subdirectory(module)
 add_subdirectory(service)
 
-#setup header files
-include_directories(${TORCH_INCLUDE_DIRS})
-message(STATUS "HEADER_DIR_LIST: " ${HEADER_DIR_LIST})
-include_directories(${HEADER_DIR_LIST})
-
-message(STATUS "SRC_LIST: " ${SRC_LIST})
-
 #add library
 add_library(deepvac SHARED ${SRC_LIST})
+target_include_directories(deepvac PUBLIC 
+    "$<INSTALL_INTERFACE:include/deepvac>"   
+    "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${HEADER_DIR_LIST}>"
+)
+
+set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)
+#target_compile_options(deepvac PRIVATE -Werror)
+#target_compile_features(deepvac PRIVATE cxx_std_17)
 
 #add examples
 add_subdirectory(examples)
 
 message(STATUS "install headers: " ${HEADER_FILE_LIST})
 
-install(TARGETS deepvac DESTINATION "lib")
+install(TARGETS deepvac EXPORT deepvac DESTINATION "lib")
 install(FILES ${HEADER_FILE_LIST} DESTINATION "include/deepvac")
 
-
+install(EXPORT deepvac DESTINATION "share/deepvac")
+install(FILES ${PROJECT_SOURCE_DIR}/cmake/deepvac-config.cmake DESTINATION share/deepvac)
