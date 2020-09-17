@@ -13,7 +13,7 @@
 
 namespace deepvac{
 
-SyszuxFaceDetect::SyszuxFaceDetect(std::string device):Deepvac("/home/gemfield/detect.gemfield", device),
+SyszuxFaceDetect::SyszuxFaceDetect(std::string device):Deepvac(face_detect_deepvac, device),
     prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
 std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
