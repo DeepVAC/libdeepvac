@@ -31,7 +31,7 @@ class SYSZUX_EXPORT Deepvac{
         std::vector<c10::IValue> forwardTuple(at::Tensor& t);
         at::Tensor forward(at::Tensor& t);
 
-    private:
+    protected:
         std::string device_;
         std::unique_ptr<torch::jit::script::Module> module_;
 };

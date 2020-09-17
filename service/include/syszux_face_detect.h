@@ -14,20 +14,15 @@
 #include "syszux_img2tensor.h"
 
 namespace deepvac{
-class SyszuxFaceDetect{
+class SyszuxFaceDetect : public Deepvac{
     public:
-        SyszuxFaceDetect() = delete;
+        SyszuxFaceDetect(std::string device = "cpu");
         SyszuxFaceDetect(const SyszuxFaceDetect&) = delete;
         SyszuxFaceDetect& operator=(const SyszuxFaceDetect&) = delete;
         SyszuxFaceDetect(SyszuxFaceDetect&&) = default;
         SyszuxFaceDetect& operator=(SyszuxFaceDetect&&) = default;
         virtual ~SyszuxFaceDetect() = default;
-        SyszuxFaceDetect(Deepvac&& deepvac);
         virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
-    
-    protected:
-        Deepvac deepvac_;
-        std::string device_;
     
     private:
         gemfield_org::PriorBox prior_box_;
