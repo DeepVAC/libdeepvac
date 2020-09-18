@@ -10,6 +10,8 @@ project(deepvac
     LANGUAGES CXX)
 
 #option(deepvac_DEBUG_MODE "debug mode is activated" OFF)
+option(BUILD_PYTHON "Build python libraries" OFF)
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
 else()
@@ -83,7 +85,7 @@ message(STATUS "    version: ${OpenCV_VERSION}")
 message(STATUS "    libraries: ${OpenCV_LIBS}")
 message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 
-message(STATUS "TORCHLIB: ${TORCH_LIBRARIES}")
+message(STATUS "TORCH_LIBRARIES: ${TORCH_LIBRARIES}")
 message(STATUS "TORCH_HEADER: ${TORCH_INCLUDE_DIRS}")
 
 # add subdiretories
@@ -100,6 +102,7 @@ target_include_directories(deepvac PUBLIC
 )
 
 set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(deepvac PROPERTIES LINK_FLAGS_RELEASE -s)
 
 set_property(
     SOURCE ${FLAGS_FILE_LIST}
@@ -111,6 +114,11 @@ set_property(
 
 target_compile_options(deepvac PRIVATE -Werror)
 #target_compile_features(deepvac PRIVATE cxx_std_17)
+
+#add python
+if(BUILD_PYTHON)
+    add_subdirectory(python)
+endif()
 
 #add examples
 add_subdirectory(examples)
