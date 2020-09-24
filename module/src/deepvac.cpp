@@ -30,7 +30,7 @@ Deepvac::Deepvac(const char* model_path, std::string device){
     }
     std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
-    GEMFIELD_I(msg.c_str());
+    GEMFIELD_DI(msg.c_str());
 }
 
 Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
@@ -52,7 +52,7 @@ Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
     }
     std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
-    GEMFIELD_I(msg.c_str());
+    GEMFIELD_DI(msg.c_str());
 }
 
 at::Tensor Deepvac::operator() (at::Tensor& t) {
@@ -63,17 +63,13 @@ at::Tensor Deepvac::operator() (at::Tensor& t) {
 at::Tensor Deepvac::forward(at::Tensor& t){
     GEMFIELD_SI;
     torch::NoGradGuard no_grad;
-
     std::vector<torch::jit::IValue> inputs;
-    //t = t.sub_(0.5).div_(0.5);
     inputs.push_back(t.to(device_));
-
     auto start = std::chrono::system_clock::now();
     at::Tensor output = module_->forward(inputs).toTensor();
     std::chrono::duration<double> forward_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("forward time: %f",  forward_duration.count() );
     GEMFIELD_DI(msg.c_str());
-
     return output;
 }
 std::vector<c10::IValue> Deepvac::forwardTuple(at::Tensor& t){
@@ -81,7 +77,11 @@ std::vector<c10::IValue> Deepvac::forwardTuple(at::Tensor& t){
     torch::NoGradGuard no_grad;
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(t.to(device_));
+    auto start = std::chrono::system_clock::now();
     std::vector<c10::IValue> rc = module_->forward(inputs).toTuple()->elements();
+    std::chrono::duration<double> forward_duration = std::chrono::system_clock::now() - start;
+    std::string msg = gemfield_org::format("forwardTuple time: %f",  forward_duration.count() );
+    GEMFIELD_DI(msg.c_str());
     return rc;
 }
 
