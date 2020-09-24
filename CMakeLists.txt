@@ -9,8 +9,7 @@ project(deepvac
     HOMEPAGE_URL "https://github.com/deepvac/libdeepvac"
     LANGUAGES CXX)
 
-#option(deepvac_DEBUG_MODE "debug mode is activated" OFF)
-option(BUILD_PYTHON "Build python libraries" ON)
+option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
@@ -27,17 +26,20 @@ set(CMAKE_C_COMPILER /usr/bin/gcc-9)
 set(CMAKE_CXX_COMPILER /usr/bin/g++-9)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 
 #setup library output dir
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #setup binary output dir
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
-#setup local
-#add_definitions(-DGEMFIELD)
-
 #replace with your libtorch dir
 #set(CMAKE_PREFIX_PATH /home/gemfield/libtorch/)
+if(GARRULOUS_GEMFIELD)
+    message(STATUS "will build deepvac library garrulously...")
+    add_definitions(-DGARRULOUS_GEMFIELD)
+endif()
 
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -113,14 +115,14 @@ set_property(
 )
 
 target_compile_options(deepvac PRIVATE -Werror)
-#target_compile_features(deepvac PRIVATE cxx_std_17)
 
-#add python
-if(BUILD_PYTHON)
-    add_subdirectory(python)
+find_program(STRIP_COMMAND NAMES "strip")
+if(STRIP_COMMAND)
+    message(STATUS "found strip command...")
+    add_custom_command(TARGET deepvac POST_BUILD COMMAND strip ${LIBRARY_OUTPUT_PATH}/*.so)
 endif()
 
-#add examples
+add_subdirectory(python)
 add_subdirectory(examples)
 
 message(STATUS "install headers: " ${HEADER_FILE_LIST})

@@ -60,8 +60,11 @@ namespace gemfield_org{
     }
 
 }
+
 #define GEMFIELDSTR_DETAIL(x) #x
 #define GEMFIELDSTR(x) GEMFIELDSTR_DETAIL(x)
+
+#ifdef GARRULOUS_GEMFIELD
 #define GEMFIELD_SI gemfield_org::Gemfield gemfieldsi({__FILE__, GEMFIELDSTR(__LINE__), __FUNCTION__}, gemfield_org::STACK_INFO)
 #define GEMFIELD_DI(x) gemfield_org::Gemfield gemfielddi({__FILE__, GEMFIELDSTR(__LINE__), __FUNCTION__,x}, gemfield_org::DETAIL_INFO)
 #define GEMFIELD_DI2(x,y) gemfield_org::Gemfield gemfielddi2({__FILE__, GEMFIELDSTR(__LINE__), __FUNCTION__,x,y}, gemfield_org::DETAIL_INFO)
@@ -71,6 +74,17 @@ namespace gemfield_org{
 #define GEMFIELD_W2(x,y) gemfield_org::Gemfield gemfieldw2({__FILE__, GEMFIELDSTR(__LINE__), __FUNCTION__,x,y}, gemfield_org::WARNING)
 #define GEMFIELD_E(x) gemfield_org::Gemfield gemfielde({__FILE__, GEMFIELDSTR(__LINE__), __FUNCTION__,x}, gemfield_org::ERROR)
 #define GEMFIELD_E2(x,y) gemfield_org::Gemfield gemfielde2({__FILE__, GEMFIELDSTR(__LINE__), __FUNCTION__,x,y}, gemfield_org::ERROR)
+#else
+#define GEMFIELD_SI
+#define GEMFIELD_DI(x)
+#define GEMFIELD_DI2(x,y)
+#define GEMFIELD_I(x)
+#define GEMFIELD_I2(x,y)
+#define GEMFIELD_W(x)
+#define GEMFIELD_W2(x,y)
+#define GEMFIELD_E(x)
+#define GEMFIELD_E2(x,y)
+#endif
 
 thread_local int __attribute__((weak)) gemfield_counter = 0;
 //std::map<uint64_t, int> __attribute__((weak)) gemfield_counter_map;
