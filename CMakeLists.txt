@@ -10,7 +10,7 @@ project(deepvac
     LANGUAGES CXX)
 
 #option(deepvac_DEBUG_MODE "debug mode is activated" OFF)
-option(BUILD_PYTHON "Build python libraries" OFF)
+option(BUILD_PYTHON "Build python libraries" ON)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)

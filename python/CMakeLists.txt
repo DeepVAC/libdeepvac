@@ -5,6 +5,14 @@
 file(GLOB CPP4PYTHON_LIST src/*.cpp)
 message(STATUS "found CPP4PYTHON_LIST: " ${CPP4PYTHON_LIST})
 
+file(GLOB HEADER_LIST include/*.h)
+add_syszux_headers(${HEADER_LIST})
+
+if(NOT CPP4PYTHON_LIST)
+    message(STATUS "No cpp found in python dir and return.")
+    return()
+endif()
+
 find_package(pybind11 REQUIRED)
 pybind11_add_module(pydeepvac ${CPP4PYTHON_LIST})
 
