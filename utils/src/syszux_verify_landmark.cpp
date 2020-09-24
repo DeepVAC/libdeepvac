@@ -43,17 +43,17 @@ bool isValidLandmark(std::vector<float> bbox, std::vector<float> landmark, int m
     }
     return true;
 }
-int decodeBox(torch::Tensor loc, torch::Tensor prior, torch::Tensor variances, torch::Tensor& boxes)
+torch::Tensor getDecodeBox(torch::Tensor& prior, torch::Tensor& variances, torch::Tensor& loc)
 {
-    torch::Tensor temp = torch::rand({loc.size(0), loc.size(1)});
+    torch::Tensor boxes;
     boxes = torch::cat({ torch::add(prior.slice(1, 0, 2), torch::mul(torch::mul(loc.slice(1, 0, 2), variances[0]), prior.slice(1, 2, 4))),
                     torch::mul(prior.slice(1, 2, 4), torch::exp(torch::mul(loc.slice(1, 2, 4), variances[1])))}, 1);
     boxes.slice(1, 0, 2) = torch::sub(boxes.slice(1, 0, 2), torch::div(boxes.slice(1, 2, 4), 2));
     boxes.slice(1, 2, 4) = torch::add(boxes.slice(1, 2, 4), boxes.slice(1, 0, 2));
-    return 0;
+    return boxes;
 }
 
-int decodeLandmark(torch::Tensor prior, torch::Tensor variances, torch::Tensor& landms)
+void decodeLandmark(torch::Tensor& prior, torch::Tensor& variances, torch::Tensor& landms)
 {
     landms = torch::cat({
                     torch::add(prior.slice(1, 0, 2), torch::mul(torch::mul(landms.slice(1, 0, 2), variances[0]), prior.slice(1, 2, 4))),
@@ -62,6 +62,5 @@ int decodeLandmark(torch::Tensor prior, torch::Tensor variances, torch::Tensor& 
                     torch::add(prior.slice(1, 0, 2), torch::mul(torch::mul(landms.slice(1, 6, 8), variances[0]), prior.slice(1, 2, 4))),
                     torch::add(prior.slice(1, 0, 2), torch::mul(torch::mul(landms.slice(1, 8, 10), variances[0]), prior.slice(1, 2, 4)))
                     }, 1);
-    return 0;
 }
 }//namespace

@@ -11,6 +11,6 @@
 
 namespace gemfield_org{
     bool isValidLandmark(std::vector<float> bbox, std::vector<float> landmark, int min_face_size=24);
-    int decodeBox(torch::Tensor loc, torch::Tensor prior, torch::Tensor variances, torch::Tensor& boxes);
-    int decodeLandmark(torch::Tensor prior, torch::Tensor variances, torch::Tensor& landms);
+    torch::Tensor getDecodeBox(torch::Tensor& prior, torch::Tensor& variances, torch::Tensor& loc);
+    void decodeLandmark(torch::Tensor& prior, torch::Tensor& variances, torch::Tensor& landms);
 }

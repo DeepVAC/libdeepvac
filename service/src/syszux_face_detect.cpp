@@ -10,6 +10,7 @@
 #include <sstream>
 #include <filesystem>
 #include "syszux_face_detect.h"
+#include "gemfield.h"
 
 namespace deepvac{
 
@@ -17,6 +18,7 @@ SyszuxFaceDetect::SyszuxFaceDetect(std::string device):Deepvac(face_detect_deepv
     prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
 std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
+    GEMFIELD_SI;
     int h = frame.rows;
     int w = frame.cols;
     int c = frame.channels();
@@ -53,7 +55,6 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     forward_conf = forward_conf.squeeze(0).to(device_);
     landms = landms.squeeze(0).to(device_);
 
-    torch::Tensor boxes;
     float resize = 1.;
 
     torch::Tensor variances_tensor = torch::tensor({0.1, 0.2});
@@ -61,7 +62,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     //gemfield
     torch::Tensor scale = torch::tensor({w, h, w, h});
     scale = scale.to(device_);
-    gemfield_org::decodeBox(loc, prior_output, variances_tensor, boxes);
+    torch::Tensor boxes = gemfield_org::getDecodeBox(prior_output, variances_tensor,loc);
     boxes = torch::div(torch::mul(boxes, scale), resize);
 
     gemfield_org::decodeLandmark(prior_output, variances_tensor, landms);
@@ -95,27 +96,30 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     keep = keep.slice(0, 0, keep_top_k);
     dets = dets.index(keep);
     landms = landms.index(keep);
-    std::cout << "detected " << dets.size(0) << "faces" << std::endl;
-
-    if(dets.size(0)==0){
-        return std::nullopt;
-    }
-    if(dets.size(0) != landms.size(0)){
-        std::cout << "dets len mismatched landms len: " << dets.size(0) << " vs " << landms.size(0);
-        return std::nullopt;
-    }
-
-    cv::Mat dets_mat(dets.size(0), dets.size(1), CV_32F);
-    cv::Mat landms_mat(landms.size(0), landms.size(1), CV_32F);
-    std::memcpy((void *) dets_mat.data, dets.data_ptr(), sizeof(torch::kF32) * dets.numel());
-    std::memcpy((void *) landms_mat.data, landms.data_ptr(), 4*sizeof(torch::kF32) * landms.numel());
     
-    std::vector<cv::Mat> detecte_out;
-    for(int i=0; i<dets_mat.rows; i++){
+    std::vector<cv::Mat> detect_vec;
+
+    if(dets.size(0) == 0){
+        return detect_vec;
+    }
+
+    std::string msg = gemfield_org::format("detected %d faces", dets.size(0));
+    GEMFIELD_I(msg.c_str());
+
+    if(dets.size(0) != landms.size(0)){
+        std::string msg = gemfield_org::format("dets len mismatched landms len: %d vs %d", dets.size(0), landms.size(0));
+        GEMFIELD_E(msg.c_str());
+        return std::nullopt;
+    }
+
+    cv::Mat landms_mat(landms.size(0), landms.size(1), CV_32F);
+    std::memcpy((void *) landms_mat.data, landms.data_ptr(), torch::elementSize(torch::kF32) * landms.numel());
+    
+    for(int i=0; i<landms_mat.rows; i++){
         auto landmark = landms_mat.row(i);
         cv::Mat dst_img = align_face_(frame_ori, landmark);
-        detecte_out.push_back(dst_img);
+        detect_vec.push_back(dst_img);
     }
-    return detecte_out;
+    return detect_vec;
 }
 } //namespace deepvac
