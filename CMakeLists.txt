@@ -100,7 +100,7 @@ add_subdirectory(service)
 add_library(deepvac SHARED ${SRC_LIST})
 target_include_directories(deepvac PUBLIC 
     "$<INSTALL_INTERFACE:include/deepvac>"   
-    "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${HEADER_DIR_LIST}>"
+    "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${HEADER_DIR_LIST};${OpenCV_INCLUDE_DIRS}>"
 )
 
 set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)

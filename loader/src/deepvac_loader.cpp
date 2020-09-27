@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cctype>
 #include <string>
-#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "deepvac_loader.h"
 #include "gemfield.h"

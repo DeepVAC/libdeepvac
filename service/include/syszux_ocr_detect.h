@@ -6,9 +6,9 @@
 
 #pragma once
 
-//#include "deepvac.h"
 #include <torch/script.h>
 #include "opencv2/opencv.hpp"
+#include <queue>
 
 //namespace gemfield_org {
 class SyszuxOcrDetect{
