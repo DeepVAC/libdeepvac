@@ -7,14 +7,18 @@
 #pragma once
 
 //#include "deepvac.h"
-#include "syszux_adaptor.h"
 #include <torch/script.h>
+#include "opencv2/opencv.hpp"
 
 //namespace gemfield_org {
 class SyszuxOcrDetect{
     public:
         SyszuxOcrDetect(std::string device);
         std::optional<cv::Mat> operator() (cv::Mat img, int long_size);
+    private:
+        void get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
+        void growing_text_line(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
+        std::vector<std::vector<int>> adaptor_pse(torch::Tensor input_data, float min_area);
     private:
         std::string device_;
 };
