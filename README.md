@@ -21,6 +21,15 @@ export CC=/usr/bin/gcc-9
 export CXX=/usr/bin/g++-9
 ```
 
+## 若打算从源码编译opencv，方法如下
+```bash
+git clone https://github.com/opencv/opencv.git
+cd opencv-4.4.0
+mkdir build && cd build
+cmake .. -DBUILD_LIST=core,imgproc,imgcodes -DBUILD_SHARED_LIBS=ON
+make -j8 && make install
+```
+
 ## 编译
 ```bash
 # create build directory

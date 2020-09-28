@@ -20,7 +20,7 @@ std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb){
         return std::nullopt;
     }
     if(is_rgb){
-        cv::cvtColor(frame, frame, CV_BGR2RGB);
+        cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
     }
     return frame;
 }
