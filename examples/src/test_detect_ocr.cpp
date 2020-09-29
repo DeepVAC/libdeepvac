@@ -7,6 +7,7 @@
 #include "syszux_ocr_detect.h"
 #include "gemfield.h"
 
+using namespace deepvac;
 int main(int argc, char** argv)
 {
     if (argc != 3) {
@@ -15,16 +16,16 @@ int main(int argc, char** argv)
     }
     std::string device = argv[1];
     std::string path = argv[2];
-    SyszuxOcrDetect ocr_detect(device);
-    
     int long_size = 640;
+    SyszuxOcrDetect ocr_detect(long_size, device);
+   
     cv::Mat img_raw = cv::imread(path);
     if(img_raw.data == nullptr)
     {
         std::cerr<< path << " is not a image file!" << std::endl;
         return 0;
     }
-    auto detect_out_opt = ocr_detect(img_raw, long_size);
+    auto detect_out_opt = ocr_detect(img_raw);
     if(!detect_out_opt){
         throw std::runtime_error("no text detected");
     }

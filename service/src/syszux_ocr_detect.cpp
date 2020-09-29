@@ -7,18 +7,17 @@
 #include "opencv2/opencv.hpp"
 #include "syszux_ocr_detect.h"
 
-//namespace gemfield_org{
+namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device){
-    device_ = device;
-}
+SyszuxOcrDetect::SyszuxOcrDetect(int long_size, std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac", device),
+    long_size_(long_size){}
 
-std::optional<cv::Mat> SyszuxOcrDetect::operator() (cv::Mat img, int long_size)
+std::optional<cv::Mat> SyszuxOcrDetect::operator() (cv::Mat img)
 {
     cv::Mat resize_img, rgb_img;
     cv::Mat text_box = img.clone();
     cv::cvtColor(img, rgb_img, cv::COLOR_BGR2RGB);
-    float scale1 = long_size * 1.0 / std::max(img.rows, img.cols);
+    float scale1 = long_size_ * 1.0 / std::max(img.rows, img.cols);
     cv::resize(rgb_img, resize_img, cv::Size(), scale1, scale1);
     
     auto tensor_img = torch::from_blob(resize_img.data, {1, resize_img.rows, resize_img.cols, resize_img.channels()}, torch::kByte);
@@ -161,5 +160,4 @@ std::vector<std::vector<int>> SyszuxOcrDetect::adaptor_pse(torch::Tensor input_d
     growing_text_line(kernals, text_line, min_area);
     return text_line;
 }
-
-//}//namespace
+}//namespace
