@@ -26,6 +26,6 @@ class SyszuxOcrDetect : public Deepvac {
         void growing_text_line(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
         std::vector<std::vector<int>> adaptor_pse(torch::Tensor input_data, float min_area);
     private:
-	int long_size_;
+        int long_size_;
 };
 } //namespace
