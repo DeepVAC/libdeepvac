@@ -21,7 +21,7 @@ export CC=/usr/bin/gcc-9
 export CXX=/usr/bin/g++-9
 ```
 
-## 若打算从源码编译opencv，方法如下
+#### 若打算从源码编译opencv，方法如下
 ```bash
 git clone https://github.com/opencv/opencv.git
 cd opencv-4.4.0
@@ -36,5 +36,8 @@ make -j8 && make install
 mkdir build
 cd build
 cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch/ ..
+#or
+#cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch_cpu/ -DBUILD_STATIC=ON ..
+
 cmake --build . --config Release
 ```

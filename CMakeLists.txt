@@ -10,6 +10,7 @@ project(deepvac
     LANGUAGES CXX)
 
 option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
+option(BUILD_STATIC "build static library" OFF)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
@@ -72,13 +73,10 @@ macro (add_syszux_headers)
 endmacro()
 
 macro (add_syszux_flags)
-    file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
         list (APPEND FLAGS_FILE_LIST "${_src}")
     endforeach()
-    if (_relPath)
-        set (FLAGS_FILE_LIST ${FLAGS_FILE_LIST} PARENT_SCOPE)
-    endif()
+    set (FLAGS_FILE_LIST ${FLAGS_FILE_LIST} PARENT_SCOPE)
 endmacro()
 
 message(STATUS "OpenCV library status:")
@@ -97,7 +95,14 @@ add_subdirectory(module)
 add_subdirectory(service)
 
 #add library
-add_library(deepvac SHARED ${SRC_LIST})
+if(BUILD_STATIC)
+    message(STATUS "will build libdeepvac static library")
+    add_library(deepvac STATIC ${SRC_LIST})
+else()
+    message(STATUS "will build libdeepvac shared library")
+    add_library(deepvac SHARED ${SRC_LIST})
+endif()
+
 target_include_directories(deepvac PUBLIC 
     "$<INSTALL_INTERFACE:include/deepvac>"   
     "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${HEADER_DIR_LIST};${OpenCV_INCLUDE_DIRS}>"
@@ -106,20 +111,24 @@ target_include_directories(deepvac PUBLIC
 set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(deepvac PROPERTIES LINK_FLAGS_RELEASE -s)
 
-set_property(
-    SOURCE ${FLAGS_FILE_LIST}
-    APPEND
-    PROPERTY COMPILE_DEFINITIONS
-    face_detect_deepvac="/home/gemfield/face_detect.deepvac"
-    #"${PROJECT_SOURCE_DIR}/cmake/face_detect.deepvac"
-)
+foreach(_src ${FLAGS_FILE_LIST})
+    string(REGEX MATCH "^[^@]+" def_name ${_src})
+    string(REPLACE "_" "." def_value ${def_name})
+    string(REPLACE "${def_name}@" "" src_name ${_src})
+    set_property(
+        SOURCE ${src_name}
+        APPEND
+        PROPERTY COMPILE_DEFINITIONS
+        ${def_name}="${CMAKE_INSTALL_PREFIX}/lib/deepvac/${def_value}"
+    )
+endforeach()
 
 target_compile_options(deepvac PRIVATE -Werror)
 
 find_program(STRIP_COMMAND NAMES "strip")
-if(STRIP_COMMAND)
+if(STRIP_COMMAND AND (NOT BUILD_STATIC))
     message(STATUS "found strip command...")
-    add_custom_command(TARGET deepvac POST_BUILD COMMAND strip ${LIBRARY_OUTPUT_PATH}/*.so)
+    add_custom_command(TARGET deepvac POST_BUILD COMMAND strip ${LIBRARY_OUTPUT_PATH}/lib*.*)
 endif()
 
 add_subdirectory(python)
@@ -132,3 +141,4 @@ install(FILES ${HEADER_FILE_LIST} DESTINATION "include/deepvac")
 
 install(EXPORT deepvac DESTINATION "share/deepvac")
 install(FILES ${PROJECT_SOURCE_DIR}/cmake/deepvac-config.cmake DESTINATION share/deepvac)
+install(FILES ${DEEPVAC_FILE_LIST} DESTINATION "lib/deepvac") 
