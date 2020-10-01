@@ -14,18 +14,20 @@
 namespace deepvac {
 class SyszuxOcrDetect : public Deepvac {
     public:
-        SyszuxOcrDetect(int long_size, std::string device="cpu");
+        SyszuxOcrDetect(std::string device="cpu");
         SyszuxOcrDetect(const SyszuxOcrDetect&) = delete;
         SyszuxOcrDetect& operator=(const SyszuxOcrDetect&) = delete;
         SyszuxOcrDetect(SyszuxOcrDetect&&) = default;
         SyszuxOcrDetect& operator=(SyszuxOcrDetect&&) = default;
-        virtual ~SyszuxOcrDetect() = default;
-        virtual std::optional<cv::Mat> operator() (cv::Mat frame);
+	virtual ~SyszuxOcrDetect() = default;
+        virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
+	void set(int long_size, int gap);
     private:
         void get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
         void growing_text_line(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
         std::vector<std::vector<int>> adaptor_pse(torch::Tensor input_data, float min_area);
     private:
         int long_size_;
+	int crop_gap_;
 };
 } //namespace
