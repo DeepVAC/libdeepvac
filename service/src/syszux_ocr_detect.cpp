@@ -7,18 +7,22 @@
 #include "opencv2/opencv.hpp"
 #include "syszux_ocr_detect.h"
 
-//namespace gemfield_org{
+namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device){
-    device_ = device;
+SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac", device) {}
+
+void SyszuxOcrDetect::set(int long_size, int crop_gap) {
+    long_size_ = long_size;
+    crop_gap_ = crop_gap;
 }
 
-std::optional<cv::Mat> SyszuxOcrDetect::operator() (cv::Mat img, int long_size)
+std::optional<std::vector<cv::Mat>> SyszuxOcrDetect::operator() (cv::Mat img)
 {
+    std::vector<cv::Mat> crop_imgs;
     cv::Mat resize_img, rgb_img;
     cv::Mat text_box = img.clone();
     cv::cvtColor(img, rgb_img, cv::COLOR_BGR2RGB);
-    float scale1 = long_size * 1.0 / std::max(img.rows, img.cols);
+    float scale1 = long_size_ * 1.0 / std::max(img.rows, img.cols);
     cv::resize(rgb_img, resize_img, cv::Size(), scale1, scale1);
     
     auto tensor_img = torch::from_blob(resize_img.data, {1, resize_img.rows, resize_img.cols, resize_img.channels()}, torch::kByte);
@@ -30,10 +34,16 @@ std::optional<cv::Mat> SyszuxOcrDetect::operator() (cv::Mat img, int long_size)
     tensor_img[0][1] = tensor_img[0][1].sub_(0.456).div_(0.224);
     tensor_img[0][2] = tensor_img[0][2].sub_(0.406).div_(0.225);
 
-    torch::Tensor kernels = torch::ones({3, 120, 640});
+    auto outputs = forward(tensor_img);
+    outputs = outputs.squeeze();
+    auto scores = torch::sigmoid(outputs.select(0, 0));
+    outputs = torch::sign(outputs.sub_(1.0));
+    outputs = outputs.add_(1).div_(2);
+
+    auto text = outputs.select(0, 0);
+    auto kernels = outputs.slice(0, 0, 3);
     kernels = kernels.toType(torch::kU8);
-    torch::Tensor scores = torch::randn({120, 640});
-    torch::Tensor text = torch::randn({120, 640});
+    
     float min_area = 10.0;
     auto pred = adaptor_pse(kernels, min_area);
     std::vector<float> scale2 = {(float)(img.cols * 1.0 / pred[0].size()), (float)(img.rows * 1.0 / pred.size())};
@@ -43,42 +53,50 @@ std::optional<cv::Mat> SyszuxOcrDetect::operator() (cv::Mat img, int long_size)
     }
     std::vector<std::vector<std::vector<cv::Point>>> bboxes;
     int label_num = torch::max(label).item<int>() + 1;
-    for(int i=0; i<label_num; i++)
+    for(int i=1; i<label_num; i++)
     {
         torch::Tensor mask_index = (label==i);
-        torch::Tensor scores_i = scores.masked_select(mask_index);
-        if (scores_i.size(0) <= 300){
+	torch::Tensor points = torch::nonzero(mask_index);
+	torch::Tensor temp = points.select(1, 0).clone();
+	points.select(1, 0) = points.select(1, 1);
+	points.select(1, 1) = temp;
+	if (points.size(0) <= 300){
             continue;
         }
+
+	torch::Tensor scores_i = scores.masked_select(mask_index);
         auto score_mean = torch::mean(scores_i).item<float>();
         if (score_mean < 0.93){
             continue;
         }
-        torch::Tensor binary = torch::zeros(label.sizes()).toType(torch::kU8);
-        torch::Tensor a = torch::ones(label.sizes()).toType(torch::kU8);
-        binary = torch::where(label==i, a, binary);
-        cv::Mat binary_mat(binary.size(0), binary.size(1), CV_8UC1);
-        std::memcpy((void *) binary_mat.data, binary.data_ptr(), torch::elementSize(torch::kU8) * binary.numel());
 
-        std::vector<std::vector<cv::Point>> contours;
-        std::vector<cv::Vec4i> hierarchy;
-        cv::findContours(binary_mat, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-        auto contour = contours[0];
-        if (contour.size() <= 2){
-            continue;
-        }
-        //std::vector<int> bbox;
-        //for (int i=0; i<contour.size(); i++){
-        //    bbox.push_back(contour[i].x * scale2[0]);
-        //    bbox.push_back(contour[i].y * scale2[1]);
-        //}
-        bboxes.push_back(contours);
+	points = points.toType(torch::kFloat);
+        cv::Mat points_mat(points.size(0), points.size(1), CV_32FC1);
+	std::memcpy((void *) points_mat.data, points.data_ptr(), torch::elementSize(torch::kFloat) * points.numel());
+	auto rect = cv::minAreaRect(points_mat);
+	cv::Mat crop_box;
+	cv::boxPoints(rect, crop_box);
+
+	auto crop_box_tensor = torch::from_blob(crop_box.data, {crop_box.rows, crop_box.cols}).toType(torch::kFloat);
+	crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).mul_(scale2[0]);
+	crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).mul_(scale2[1]);
+	crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).clamp_(0, img.cols);
+	crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).clamp_(0, img.rows);
+	
+	auto max_tensor = std::get<0>(torch::max(crop_box_tensor, 0));
+	auto min_tensor = std::get<0>(torch::min(crop_box_tensor, 0));
+	int x_max = max_tensor[0].item().toInt();
+	int y_max = max_tensor[1].item().toInt();
+	int x_min = min_tensor[0].item().toInt();
+	int y_min = min_tensor[1].item().toInt();
+       
+       	x_max = (x_max + crop_gap_) >= img.cols ? img.cols : (x_max + crop_gap_);
+	x_min = (x_min - crop_gap_) <= 0 ? 0 : (x_min - crop_gap_);
+
+	auto crop_img = img(cv::Rect(x_min, y_min, x_max-x_min, y_max-y_min));
+	crop_imgs.push_back(crop_img);
     }
-    for(int i=0; i<bboxes.size(); i++){
-        cv::drawContours(text_box, bboxes[i], -1, (0, 255, 0), 2);
-    }
-    cv::resize(text_box, text_box, cv::Size(text.size(1), text.size(0)));
-    return text_box;
+    return crop_imgs;
 }
 
 void SyszuxOcrDetect::get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {
@@ -161,5 +179,4 @@ std::vector<std::vector<int>> SyszuxOcrDetect::adaptor_pse(torch::Tensor input_d
     growing_text_line(kernals, text_line, min_area);
     return text_line;
 }
-
-//}//namespace
+}//namespace

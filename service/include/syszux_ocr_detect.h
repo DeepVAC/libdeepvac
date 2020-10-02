@@ -6,20 +6,28 @@
 
 #pragma once
 
+#include <deepvac.h>
 #include <torch/script.h>
 #include "opencv2/opencv.hpp"
 #include <queue>
 
-//namespace gemfield_org {
-class SyszuxOcrDetect{
+namespace deepvac {
+class SyszuxOcrDetect : public Deepvac {
     public:
-        SyszuxOcrDetect(std::string device);
-        std::optional<cv::Mat> operator() (cv::Mat img, int long_size);
+        SyszuxOcrDetect(std::string device="cpu");
+        SyszuxOcrDetect(const SyszuxOcrDetect&) = delete;
+        SyszuxOcrDetect& operator=(const SyszuxOcrDetect&) = delete;
+        SyszuxOcrDetect(SyszuxOcrDetect&&) = default;
+        SyszuxOcrDetect& operator=(SyszuxOcrDetect&&) = default;
+	virtual ~SyszuxOcrDetect() = default;
+        virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
+	void set(int long_size, int gap);
     private:
         void get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
         void growing_text_line(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
         std::vector<std::vector<int>> adaptor_pse(torch::Tensor input_data, float min_area);
     private:
-        std::string device_;
+        int long_size_;
+	int crop_gap_;
 };
-//} //namespace
+} //namespace
