@@ -26,7 +26,7 @@ export CXX=/usr/bin/g++-9
 git clone https://github.com/opencv/opencv.git
 cd opencv-4.4.0
 mkdir build && cd build
-cmake .. -DBUILD_LIST=core,imgproc,imgcodes -DBUILD_SHARED_LIBS=ON
+cmake .. -DBUILD_LIST=core,imgproc,imgcodecs -DBUILD_SHARED_LIBS=ON
 make -j8 && make install
 ```
 

@@ -9,7 +9,7 @@
 
 namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac", device) {}
+SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac(ocrdet_deepvac, device) {}
 
 void SyszuxOcrDetect::set(int long_size, int crop_gap) {
     long_size_ = long_size;
@@ -53,48 +53,47 @@ std::optional<std::vector<cv::Mat>> SyszuxOcrDetect::operator() (cv::Mat img)
     }
     std::vector<std::vector<std::vector<cv::Point>>> bboxes;
     int label_num = torch::max(label).item<int>() + 1;
-    for(int i=1; i<label_num; i++)
-    {
+    for(int i=1; i<label_num; i++){
         torch::Tensor mask_index = (label==i);
-	torch::Tensor points = torch::nonzero(mask_index);
-	torch::Tensor temp = points.select(1, 0).clone();
-	points.select(1, 0) = points.select(1, 1);
-	points.select(1, 1) = temp;
-	if (points.size(0) <= 300){
+        torch::Tensor points = torch::nonzero(mask_index);
+        torch::Tensor temp = points.select(1, 0).clone();
+        points.select(1, 0) = points.select(1, 1);
+        points.select(1, 1) = temp;
+        if (points.size(0) <= 300){
             continue;
         }
 
-	torch::Tensor scores_i = scores.masked_select(mask_index);
+        torch::Tensor scores_i = scores.masked_select(mask_index);
         auto score_mean = torch::mean(scores_i).item<float>();
         if (score_mean < 0.93){
             continue;
         }
 
-	points = points.toType(torch::kFloat);
+        points = points.toType(torch::kFloat);
         cv::Mat points_mat(points.size(0), points.size(1), CV_32FC1);
-	std::memcpy((void *) points_mat.data, points.data_ptr(), torch::elementSize(torch::kFloat) * points.numel());
-	auto rect = cv::minAreaRect(points_mat);
-	cv::Mat crop_box;
-	cv::boxPoints(rect, crop_box);
-
-	auto crop_box_tensor = torch::from_blob(crop_box.data, {crop_box.rows, crop_box.cols}).toType(torch::kFloat);
-	crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).mul_(scale2[0]);
-	crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).mul_(scale2[1]);
-	crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).clamp_(0, img.cols);
-	crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).clamp_(0, img.rows);
-	
-	auto max_tensor = std::get<0>(torch::max(crop_box_tensor, 0));
-	auto min_tensor = std::get<0>(torch::min(crop_box_tensor, 0));
-	int x_max = max_tensor[0].item().toInt();
-	int y_max = max_tensor[1].item().toInt();
-	int x_min = min_tensor[0].item().toInt();
-	int y_min = min_tensor[1].item().toInt();
+        std::memcpy((void *) points_mat.data, points.data_ptr(), torch::elementSize(torch::kFloat) * points.numel());
+        auto rect = cv::minAreaRect(points_mat);
+        cv::Mat crop_box;
+        cv::boxPoints(rect, crop_box);
+        
+        auto crop_box_tensor = torch::from_blob(crop_box.data, {crop_box.rows, crop_box.cols}).toType(torch::kFloat);
+        crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).mul_(scale2[0]);
+        crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).mul_(scale2[1]);
+        crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).clamp_(0, img.cols);
+        crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).clamp_(0, img.rows);
+        	
+        auto max_tensor = std::get<0>(torch::max(crop_box_tensor, 0));
+        auto min_tensor = std::get<0>(torch::min(crop_box_tensor, 0));
+        int x_max = max_tensor[0].item().toInt();
+        int y_max = max_tensor[1].item().toInt();
+        int x_min = min_tensor[0].item().toInt();
+        int y_min = min_tensor[1].item().toInt();
        
-       	x_max = (x_max + crop_gap_) >= img.cols ? img.cols : (x_max + crop_gap_);
-	x_min = (x_min - crop_gap_) <= 0 ? 0 : (x_min - crop_gap_);
-
-	auto crop_img = img(cv::Rect(x_min, y_min, x_max-x_min, y_max-y_min));
-	crop_imgs.push_back(crop_img);
+      	x_max = (x_max + crop_gap_) >= img.cols ? img.cols : (x_max + crop_gap_);
+        x_min = (x_min - crop_gap_) <= 0 ? 0 : (x_min - crop_gap_);
+        
+        auto crop_img = img(cv::Rect(x_min, y_min, x_max-x_min, y_max-y_min));
+        crop_imgs.push_back(crop_img);
     }
     return crop_imgs;
 }
