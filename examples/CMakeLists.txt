@@ -5,9 +5,6 @@
 file(GLOB EXAMPLES_LIST src/*.cpp)
 message(STATUS "found EXAMPLES_LIST: " ${EXAMPLES_LIST})
 
-#main program
-file(GLOB SYSZUX_EXTRACT */syszux_extract_feature.cpp)
-
 find_library(CRYPTO crypto)
 if(CRYPTO)
     message(STATUS "found crypto library: " ${CRYPTO})
