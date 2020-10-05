@@ -37,20 +37,27 @@ namespace gemfield_org{
     using DeepvacKeyBytes = std::array<unsigned char, SHA256_DIGEST_LENGTH>;
     class SyszuxDecrypt{
         public:
-            SyszuxDecrypt() = delete;
+            SyszuxDecrypt(){
+	        ctx_ = EVP_CIPHER_CTX_new();
+	        GEMFIELD_I("construct SyszuxDecrypt succeeded.");
+	    } ;
             SyszuxDecrypt(const SyszuxDecrypt&) = delete;
             SyszuxDecrypt& operator=(const SyszuxDecrypt&) = delete;
             SyszuxDecrypt(SyszuxDecrypt&&) = default;
             SyszuxDecrypt& operator=(SyszuxDecrypt&&) = default;
             SyszuxDecrypt(std::string key):key_(key){
                 ctx_ = EVP_CIPHER_CTX_new();
+                GEMFIELD_I("construct SyszuxDecrypt succeeded.");
             }
             virtual ~SyszuxDecrypt(){
                 EVP_CIPHER_CTX_cleanup(ctx_);
                 EVP_CIPHER_CTX_free(ctx_);
+                GEMFIELD_I("destruct SyszuxDecrypt succeeded."); 
             }
 
-            std::vector<unsigned char> de(const std::string &file_path) {
+            std::vector<unsigned char> de(const std::string file_path, const std::string k) {
+                GEMFIELD_SI;
+                key_ = k;
                 DeepvacKeyBytes key = calculateSha256(key_);
                 auto pt_bytes = readFileToVectorByte(file_path);
 
