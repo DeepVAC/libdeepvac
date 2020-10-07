@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04 as build
+FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
 LABEL maintainer "Gemfield <gemfield@civilnet.cn>"
 
 #wa for nvidia sig
@@ -9,7 +9,7 @@ RUN apt-get update && \
         apt-get install -y --no-install-recommends \
         build-essential \
         software-properties-common ca-certificates apt-transport-https gnupg \ 
-        git curl wget vim unzip \
+        git curl wget vim unzip zlib1g-dev \
         tzdata libssl-dev python3-pip python3-dev
 
 RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
@@ -28,38 +28,12 @@ RUN curl https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-w
 
 #do it in the morning
 RUN curl -L https://github.com/opencv/opencv/archive/4.4.0.zip -o opencv.zip && \
-        unzip opencv.zip && cd opencv-4.4.0 && \
+        unzip opencv.zip && rm opencv.zip && cd opencv-4.4.0 && \
         mkdir install && mkdir build && cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_LIST=core,imgproc,imgcodes -DCMAKE_INSTALL_PREFIX=/gemfield/opencv-4.4.0/install -DBUILD_SHARED_LIBS=ON ..
-        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_LIST=core,imgproc,imgcodecs \
-            -DCMAKE_INSTALL_PREFIX=/gemfield/opencv-4.4.0/install -DBUILD_SHARED_LIBS=ON \
-            .. && \
-        make VERBOSE=1 && \
-        make install
-#-DPYTHON3_EXECUTABLE=/usr/bin/python3 -DPYTHON3_INCLUDE_DIR=/usr/include/python3.6 \
-#-DPYTHON3_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so \
-#-DPYTHON3_NUMPY_INCLUDE_DIRS=/usr/local/lib/python3.6/dist-packages/numpy/core/include \
-                
+        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_LIST=core,imgproc,imgcodecs -DCMAKE_INSTALL_PREFIX=/gemfield/opencv-4.4.0/install -DBUILD_SHARED_LIBS=OFF .. && \
+        make VERBOSE=1 && make install
 
 RUN git clone https://github.com/DeepVAC/libdeepvac libdeepvac && \
-        cd libdeepvac && \
-        mkdir build && \
-        mkdir install && \
-        cd build && \
+        cd libdeepvac && mkdir build && mkdir install && cd build && \
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch;/gemfield/opencv-4.4.0/install/" -DCMAKE_INSTALL_PREFIX=/gemfield/libdeepvac/install -DBUILD_STATIC=ON .. && \
-        cmake --build . --config Release && \
-        make install
-
-FROM nvidia/cuda:10.2-cudnn7-runtime-ubuntu18.04
-LABEL maintainer "Gemfield <gemfield@civilnet.cn>"
-RUN apt-get update && \
-        DEBIAN_FRONTEND="noninteractive" \
-        apt-get install -y --no-install-recommends \
-        python python3-pip
-        apt-get autoremove -y && \
-        apt-get clean -y && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN pip3 --no-cache-dir install numpy opencv_python
-
-COPY --from=build /opt/media/ZLMediaKit/release/linux/Release/MediaServer /opt/media/bin/MediaServer
+        cmake --build . --config Release && make install
