@@ -11,3 +11,4 @@ add_syszux_headers(${HEADER_LIST})
 
 add_header_dir(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_syszux_flags(facedet_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/syszux_face_detect.cpp)
+add_syszux_flags(ocrdet_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/syszux_ocr_detect.cpp)
