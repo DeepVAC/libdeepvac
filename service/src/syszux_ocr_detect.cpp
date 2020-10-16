@@ -41,7 +41,7 @@ std::optional<std::vector<cv::Mat>> SyszuxOcrDetect::operator() (cv::Mat img)
     outputs = outputs.add_(1).div_(2);
 
     auto text = outputs.select(0, 0);
-    auto kernels = outputs.slice(0, 0, 3);
+    auto kernels = outputs.slice(0, 0, 3) * text;
     kernels = kernels.toType(torch::kU8);
     
     float min_area = 10.0;
@@ -51,7 +51,6 @@ std::optional<std::vector<cv::Mat>> SyszuxOcrDetect::operator() (cv::Mat img)
     for (int i=0; i<pred.size(); i++){
         label[i] = torch::tensor(pred[i]);
     }
-    std::vector<std::vector<std::vector<cv::Point>>> bboxes;
     int label_num = torch::max(label).item<int>() + 1;
     for(int i=1; i<label_num; i++){
         torch::Tensor mask_index = (label==i);
@@ -172,6 +171,7 @@ void SyszuxOcrDetect::growing_text_line(std::vector<cv::Mat> &kernals, std::vect
 
 std::vector<std::vector<int>> SyszuxOcrDetect::adaptor_pse(torch::Tensor input_data, float min_area) {
     std::vector<cv::Mat> kernals;
+    input_data = input_data.to(torch::kCPU);
     get_kernals(input_data, kernals);
 
     std::vector<std::vector<int>> text_line;
