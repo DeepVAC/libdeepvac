@@ -18,7 +18,7 @@ jobs:
       run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
     - uses: actions/checkout@v2
     - name: Build the Docker image
-      run: docker build . --file docker/ubuntu18.04/Dockerfile.cuda.devel --tag gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04-${{ steps.gemfield.outputs.sha8 }}
+      run: docker build . --file docker/ubuntu18.04/Dockerfile.cuda.devel --tag gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04-${{ steps.gemfield.outputs.sha8 }} --tag gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04
       
     - name: Login to DockerHub
       uses: docker/login-action@v1 
@@ -27,4 +27,4 @@ jobs:
         password: ${{ secrets.HUB_TOKEN }}
     
     - name: Push Docker image
-      run: docker push gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04-${{ steps.gemfield.outputs.sha8 }}
+      run: docker push gemfield/deepvac
