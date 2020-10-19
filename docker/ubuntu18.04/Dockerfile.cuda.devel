@@ -10,7 +10,7 @@ RUN apt-get update && \
         build-essential \
         software-properties-common ca-certificates apt-transport-https gnupg \ 
         git curl wget vim unzip zlib1g-dev \
-        tzdata libssl-dev python3-pip python3-dev
+        tzdata locales libssl-dev python3-pip python3-dev
 
 RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
 
@@ -18,8 +18,11 @@ RUN apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' && \
         add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
         apt install -y --no-install-recommends gcc-9 g++-9 cmake
 
+RUN locale-gen zh_CN.utf8
+
 ENV CC=/usr/bin/gcc-9
 ENV CXX=/usr/bin/g++-9
+ENV LANG=zh_CN.utf8
 
 WORKDIR /gemfield
 
