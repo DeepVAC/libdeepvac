@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/err.h>
