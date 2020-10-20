@@ -31,9 +31,18 @@ int main(int argc, char** argv)
     if(!detect_out_opt){
         throw std::runtime_error("no text detected");
     }
-    std::vector<cv::Mat> detect_out = detect_out_opt.value();	
-    for (int i=0; i<detect_out.size(); i++) {
-        cv::imwrite("./ocr_detect_test" + std::to_string(i) + ".jpg", detect_out[i]);
+
+    std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> detect_out = detect_out_opt.value();
+    std::vector<cv::Mat> crop_imgs = detect_out.first;
+    std::vector<std::vector<int>> rects = detect_out.second;
+
+    if (crop_imgs.size()==0) {
+        std::cout << "no text detected" << std::endl;
+        return 0;
+    }
+    for (int i=0; i<crop_imgs.size(); i++) {
+        cv::imwrite("./ocr_detect_test" + std::to_string(i) + ".jpg", crop_imgs[i]);
+        std::cout << "rect: " << rects[i] << std::endl;
     }
     return 0;
 }

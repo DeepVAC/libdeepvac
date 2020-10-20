@@ -6,17 +6,16 @@
 
 #include "opencv2/opencv.hpp"
 #include "syszux_ocr_detect.h"
-
 namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac(ocrdet_deepvac, device) {}
+SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac", device) {}
 
 void SyszuxOcrDetect::set(int long_size, int crop_gap) {
     long_size_ = long_size;
     crop_gap_ = crop_gap;
 }
 
-std::optional<std::vector<cv::Mat>> SyszuxOcrDetect::operator() (cv::Mat img)
+std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > SyszuxOcrDetect::operator() (cv::Mat img)
 {
     std::vector<cv::Mat> crop_imgs;
     cv::Mat resize_img, rgb_img;
@@ -35,24 +34,28 @@ std::optional<std::vector<cv::Mat>> SyszuxOcrDetect::operator() (cv::Mat img)
     tensor_img[0][2] = tensor_img[0][2].sub_(0.406).div_(0.225);
 
     auto outputs = forward(tensor_img);
+    outputs = outputs.to(device_);
     outputs = outputs.squeeze();
     auto scores = torch::sigmoid(outputs.select(0, 0));
     outputs = torch::sign(outputs.sub_(1.0));
     outputs = outputs.add_(1).div_(2);
-
     auto text = outputs.select(0, 0);
     auto kernels = outputs.slice(0, 0, 3) * text;
     kernels = kernels.toType(torch::kU8);
     
     float min_area = 10.0;
+    
     auto pred = adaptor_pse(kernels, min_area);
     std::vector<float> scale2 = {(float)(img.cols * 1.0 / pred[0].size()), (float)(img.rows * 1.0 / pred.size())};
     torch::Tensor label = torch::randn({(int)pred.size(), (int)pred[0].size()});
     for (int i=0; i<pred.size(); i++){
         label[i] = torch::tensor(pred[i]);
     }
+
+    std::vector<std::vector<float>> bboxes;
     int label_num = torch::max(label).item<int>() + 1;
-    for(int i=1; i<label_num; i++){
+    for(int i=1; i<label_num; i++)
+    {
         torch::Tensor mask_index = (label==i);
         torch::Tensor points = torch::nonzero(mask_index);
         torch::Tensor temp = points.select(1, 0).clone();
@@ -69,38 +72,107 @@ std::optional<std::vector<cv::Mat>> SyszuxOcrDetect::operator() (cv::Mat img)
         }
 
         points = points.toType(torch::kFloat);
+        points = points.to(torch::kCPU);
         cv::Mat points_mat(points.size(0), points.size(1), CV_32FC1);
         std::memcpy((void *) points_mat.data, points.data_ptr(), torch::elementSize(torch::kFloat) * points.numel());
         auto rect = cv::minAreaRect(points_mat);
         cv::Mat crop_box;
         cv::boxPoints(rect, crop_box);
-        
+
         auto crop_box_tensor = torch::from_blob(crop_box.data, {crop_box.rows, crop_box.cols}).toType(torch::kFloat);
+        crop_box_tensor = crop_box_tensor.to(device_);
         crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).mul_(scale2[0]);
         crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).mul_(scale2[1]);
         crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).clamp_(0, img.cols);
         crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).clamp_(0, img.rows);
-        	
+
         auto max_tensor = std::get<0>(torch::max(crop_box_tensor, 0));
         auto min_tensor = std::get<0>(torch::min(crop_box_tensor, 0));
-        int x_max = max_tensor[0].item().toInt();
-        int y_max = max_tensor[1].item().toInt();
-        int x_min = min_tensor[0].item().toInt();
-        int y_min = min_tensor[1].item().toInt();
-       
-      	x_max = (x_max + crop_gap_) >= img.cols ? img.cols : (x_max + crop_gap_);
+        float x_max = max_tensor[0].item().toFloat();
+        float y_max = max_tensor[1].item().toFloat();
+        float x_min = min_tensor[0].item().toFloat();
+        float y_min = min_tensor[1].item().toFloat();
+
+        std::vector<float> bbox = {x_min, y_min, x_max, y_max};
+        bboxes.push_back(bbox);
+    }
+    std::vector<std::vector<float>> keep = merge_box(bboxes);
+    std::vector<std::vector<int>> rects;
+    for (auto rect : keep) {
+        int x_min = (int)rect[0];
+        int y_min = (int)rect[1];
+        int x_max = (int)rect[2];
+        int y_max = (int)rect[3];
+        x_max = (x_max + crop_gap_) >= img.cols ? img.cols : (x_max + crop_gap_);
         x_min = (x_min - crop_gap_) <= 0 ? 0 : (x_min - crop_gap_);
-        
         auto crop_img = img(cv::Rect(x_min, y_min, x_max-x_min, y_max-y_min));
         crop_imgs.push_back(crop_img);
+        rects.push_back({x_min, y_min, x_max, y_max});
+
     }
-    return crop_imgs;
+    std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> crop_imgs_and_rects(crop_imgs, rects);
+    return crop_imgs_and_rects;
+}
+
+std::vector<std::vector<float>> SyszuxOcrDetect::merge_box(std::vector<std::vector<float>> rects) {
+    std::vector<std::vector<float>> keep;
+    while (rects.size() > 0) {
+        if (rects.size() == 1) {
+            keep.push_back(rects[0]);
+            break;
+        }
+        std::vector<float> cur_rect = rects[0];
+        auto iter = std::remove(rects.begin(), rects.end(), cur_rect);
+        rects.erase(iter, rects.end());
+        std::vector<std::vector<float>> second2last_rects = rects;
+        for (auto rect : second2last_rects) {
+        if (is_merge(cur_rect, rect)) {
+            float x_min = std::min(cur_rect[0], rect[0]);
+            float y_min = std::min(cur_rect[1], rect[1]);
+            float x_max = std::max(cur_rect[2], rect[2]);
+            float y_max = std::max(cur_rect[3], rect[3]);
+            cur_rect = {x_min, y_min, x_max, y_max};
+            iter = std::remove(rects.begin(), rects.end(), rect);
+            rects.erase(iter, rects.end());
+            }
+        }
+        keep.push_back(cur_rect);
+    }
+    return keep;
+}
+
+bool SyszuxOcrDetect::is_merge(std::vector<float> rect1, std::vector<float> rect2) {
+    float x1_min = rect1[0];
+    float y1_min = rect1[1];
+    float x1_max = rect1[2];
+    float y1_max = rect1[3];
+    float x2_min = rect2[0];
+    float y2_min = rect2[1];
+    float x2_max = rect2[2];
+    float y2_max = rect2[3];
+
+    if (y1_max <= y2_min || y1_min >= y2_max) {
+        return false;
+    }
+
+    float y[4] = {y1_min, y1_max, y2_min, y2_max};
+    std::sort(y, y + 4);
+    float x_thre = 2 * (y[3] - y[0]);
+    if ((y[2]-y[1])/(y[3]-y[0]) < 0.7) {
+        return false;
+    }
+    if ( (((x1_min - x2_max)>=0) && ((x1_min - x2_max)<=x_thre)) || (((x2_min - x1_max)>=0) && ((x2_min - x1_max)<=x_thre)) ) {
+        return true;
+    }
+    return false;
 }
 
 void SyszuxOcrDetect::get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {
-    for (int i = 0; i < input_data.size(0); ++i) {
-        cv::Mat kernal(input_data[i].size(0), input_data[i].size(1), CV_8UC1);
-        std::memcpy((void *) kernal.data, input_data[i].data_ptr(), sizeof(torch::kU8) * input_data[i].numel());
+    torch::Tensor input_data_cpu = input_data.clone();
+    input_data_cpu = input_data_cpu.to(torch::kCPU);
+    for (int i = 0; i < input_data_cpu.size(0); ++i) {
+        cv::Mat kernal(input_data_cpu[i].size(0), input_data_cpu[i].size(1), CV_8UC1);
+        std::memcpy((void *) kernal.data, input_data_cpu[i].data_ptr(), sizeof(torch::kU8) * input_data_cpu[i].numel());
         kernals.emplace_back(kernal);
     }
 }
@@ -171,7 +243,6 @@ void SyszuxOcrDetect::growing_text_line(std::vector<cv::Mat> &kernals, std::vect
 
 std::vector<std::vector<int>> SyszuxOcrDetect::adaptor_pse(torch::Tensor input_data, float min_area) {
     std::vector<cv::Mat> kernals;
-    input_data = input_data.to(torch::kCPU);
     get_kernals(input_data, kernals);
 
     std::vector<std::vector<int>> text_line;
