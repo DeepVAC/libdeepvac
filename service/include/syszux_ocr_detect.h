@@ -10,6 +10,7 @@
 #include <torch/script.h>
 #include "opencv2/opencv.hpp"
 #include <queue>
+#include <algorithm>
 
 namespace deepvac {
 class SyszuxOcrDetect : public Deepvac {
@@ -20,12 +21,14 @@ class SyszuxOcrDetect : public Deepvac {
         SyszuxOcrDetect(SyszuxOcrDetect&&) = default;
         SyszuxOcrDetect& operator=(SyszuxOcrDetect&&) = default;
         virtual ~SyszuxOcrDetect() = default;
-        virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
+        virtual std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> operator() (cv::Mat frame);
         void set(int long_size, int gap);
     private:
-        void get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
-        void growing_text_line(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
-        std::vector<std::vector<int>> adaptor_pse(torch::Tensor input_data, float min_area);
+        void getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
+        void growingTextLine(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
+        std::vector<std::vector<int>> adaptorPse(torch::Tensor input_data, float min_area);
+        bool isMerge(std::vector<float> rect1, std::vector<float> rect2);
+        std::vector<std::vector<float>> mergeBox(std::vector<std::vector<float>> rects);
     private:
         int long_size_;
         int crop_gap_;
