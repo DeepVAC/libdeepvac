@@ -8,7 +8,7 @@
 #include "syszux_ocr_detect.h"
 namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac(ocrdet_deepvac, device) {}
+SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac", device) {}
 
 void SyszuxOcrDetect::set(int long_size, int crop_gap) {
     long_size_ = long_size;
@@ -45,7 +45,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     
     float min_area = 10.0;
     
-    auto pred = adaptor_pse(kernels, min_area);
+    auto pred = adaptorPse(kernels, min_area);
     std::vector<float> scale2 = {(float)(img.cols * 1.0 / pred[0].size()), (float)(img.rows * 1.0 / pred.size())};
     torch::Tensor label = torch::randn({(int)pred.size(), (int)pred[0].size()});
     for (int i=0; i<pred.size(); i++){
@@ -96,7 +96,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         std::vector<float> bbox = {x_min, y_min, x_max, y_max};
         bboxes.push_back(bbox);
     }
-    std::vector<std::vector<float>> keep = merge_box(bboxes);
+    std::vector<std::vector<float>> keep = mergeBox(bboxes);
     std::vector<std::vector<int>> rects;
     for (auto rect : keep) {
         int x_min = (int)rect[0];
@@ -114,7 +114,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     return crop_imgs_and_rects;
 }
 
-std::vector<std::vector<float>> SyszuxOcrDetect::merge_box(std::vector<std::vector<float>> rects) {
+std::vector<std::vector<float>> SyszuxOcrDetect::mergeBox(std::vector<std::vector<float>> rects) {
     std::vector<std::vector<float>> keep;
     while (rects.size() > 0) {
         if (rects.size() == 1) {
@@ -126,7 +126,7 @@ std::vector<std::vector<float>> SyszuxOcrDetect::merge_box(std::vector<std::vect
         rects.erase(iter, rects.end());
         std::vector<std::vector<float>> second2last_rects = rects;
         for (auto rect : second2last_rects) {
-        if (is_merge(cur_rect, rect)) {
+        if (isMerge(cur_rect, rect)) {
             float x_min = std::min(cur_rect[0], rect[0]);
             float y_min = std::min(cur_rect[1], rect[1]);
             float x_max = std::max(cur_rect[2], rect[2]);
@@ -141,7 +141,7 @@ std::vector<std::vector<float>> SyszuxOcrDetect::merge_box(std::vector<std::vect
     return keep;
 }
 
-bool SyszuxOcrDetect::is_merge(std::vector<float> rect1, std::vector<float> rect2) {
+bool SyszuxOcrDetect::isMerge(std::vector<float> rect1, std::vector<float> rect2) {
     float x1_min = rect1[0];
     float y1_min = rect1[1];
     float x1_max = rect1[2];
@@ -167,7 +167,7 @@ bool SyszuxOcrDetect::is_merge(std::vector<float> rect1, std::vector<float> rect
     return false;
 }
 
-void SyszuxOcrDetect::get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {
+void SyszuxOcrDetect::getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {
     for (int i = 0; i < input_data.size(0); ++i) {
         cv::Mat kernal(input_data[i].size(0), input_data[i].size(1), CV_8UC1);
         std::memcpy((void *) kernal.data, input_data[i].data_ptr(), sizeof(torch::kU8) * input_data[i].numel());
@@ -175,7 +175,7 @@ void SyszuxOcrDetect::get_kernals(torch::Tensor input_data, std::vector<cv::Mat>
     }
 }
 
-void SyszuxOcrDetect::growing_text_line(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area) {
+void SyszuxOcrDetect::growingTextLine(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area) {
     cv::Mat label_mat;
     int label_num = connectedComponents(kernals[kernals.size() - 1], label_mat, 4);
 
@@ -239,13 +239,13 @@ void SyszuxOcrDetect::growing_text_line(std::vector<cv::Mat> &kernals, std::vect
     }
 }
 
-std::vector<std::vector<int>> SyszuxOcrDetect::adaptor_pse(torch::Tensor input_data, float min_area) {
+std::vector<std::vector<int>> SyszuxOcrDetect::adaptorPse(torch::Tensor input_data, float min_area) {
     std::vector<cv::Mat> kernals;
     input_data = input_data.to(torch::kCPU);
-    get_kernals(input_data, kernals);
+    getKernals(input_data, kernals);
 
     std::vector<std::vector<int>> text_line;
-    growing_text_line(kernals, text_line, min_area);
+    growingTextLine(kernals, text_line, min_area);
     return text_line;
 }
 }//namespace

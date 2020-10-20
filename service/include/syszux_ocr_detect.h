@@ -24,11 +24,11 @@ class SyszuxOcrDetect : public Deepvac {
         virtual std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> operator() (cv::Mat frame);
         void set(int long_size, int gap);
     private:
-        void get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
-        void growing_text_line(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
-        std::vector<std::vector<int>> adaptor_pse(torch::Tensor input_data, float min_area);
-        bool is_merge(std::vector<float> rect1, std::vector<float> rect2);
-        std::vector<std::vector<float>> merge_box(std::vector<std::vector<float>> rects);
+        void getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
+        void growingTextLine(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
+        std::vector<std::vector<int>> adaptorPse(torch::Tensor input_data, float min_area);
+        bool isMerge(std::vector<float> rect1, std::vector<float> rect2);
+        std::vector<std::vector<float>> mergeBox(std::vector<std::vector<float>> rects);
     private:
         int long_size_;
         int crop_gap_;
