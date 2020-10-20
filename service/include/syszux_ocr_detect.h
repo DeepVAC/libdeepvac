@@ -30,7 +30,7 @@ class SyszuxOcrDetect : public Deepvac {
         bool isMerge(std::vector<float> rect1, std::vector<float> rect2);
         std::vector<std::vector<float>> mergeBox(std::vector<std::vector<float>> rects);
     private:
-        int long_size_;
-        int crop_gap_;
+        int long_size_{1280};
+        int crop_gap_{10};
 };
 } //namespace

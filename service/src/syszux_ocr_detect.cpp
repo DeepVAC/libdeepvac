@@ -8,7 +8,7 @@
 #include "syszux_ocr_detect.h"
 namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac", device) {}
+SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac(ocrdet_deepvac, device) {}
 
 void SyszuxOcrDetect::set(int long_size, int crop_gap) {
     long_size_ = long_size;
