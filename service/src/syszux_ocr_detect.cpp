@@ -8,7 +8,7 @@
 #include "syszux_ocr_detect.h"
 namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac", device) {}
+SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac(ocrdet_deepvac, device) {}
 
 void SyszuxOcrDetect::set(int long_size, int crop_gap) {
     long_size_ = long_size;
@@ -168,11 +168,9 @@ bool SyszuxOcrDetect::is_merge(std::vector<float> rect1, std::vector<float> rect
 }
 
 void SyszuxOcrDetect::get_kernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {
-    torch::Tensor input_data_cpu = input_data.clone();
-    input_data_cpu = input_data_cpu.to(torch::kCPU);
-    for (int i = 0; i < input_data_cpu.size(0); ++i) {
-        cv::Mat kernal(input_data_cpu[i].size(0), input_data_cpu[i].size(1), CV_8UC1);
-        std::memcpy((void *) kernal.data, input_data_cpu[i].data_ptr(), sizeof(torch::kU8) * input_data_cpu[i].numel());
+    for (int i = 0; i < input_data.size(0); ++i) {
+        cv::Mat kernal(input_data[i].size(0), input_data[i].size(1), CV_8UC1);
+        std::memcpy((void *) kernal.data, input_data[i].data_ptr(), sizeof(torch::kU8) * input_data[i].numel());
         kernals.emplace_back(kernal);
     }
 }
@@ -243,6 +241,7 @@ void SyszuxOcrDetect::growing_text_line(std::vector<cv::Mat> &kernals, std::vect
 
 std::vector<std::vector<int>> SyszuxOcrDetect::adaptor_pse(torch::Tensor input_data, float min_area) {
     std::vector<cv::Mat> kernals;
+    input_data = input_data.to(torch::kCPU);
     get_kernals(input_data, kernals);
 
     std::vector<std::vector<int>> text_line;
