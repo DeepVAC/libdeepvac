@@ -16,8 +16,8 @@ int main(int argc, char** argv)
     }
     std::string device = argv[1];
     std::string path = argv[2];
-    int long_size = 640;
-    int crop_gap = 10;
+    int long_size = 1280;
+    int crop_gap = 5;
     SyszuxOcrDetect ocr_detect(device);
     ocr_detect.set(long_size, crop_gap);
    
