@@ -15,6 +15,30 @@ void SyszuxOcrDetect::set(int long_size, int crop_gap) {
     crop_gap_ = crop_gap;
 }
 
+cv::Mat SyszuxOcrDetect::cropRect(cv::Mat img, cv::RotatedRect rotated_rects) {
+    cv::Point2f center = rotated_rects.center;
+    cv::Size2f size = rotated_rects.size;
+    float angle = rotated_rects.angle;
+    cv::Point center_i;
+    cv::Size size_i;
+    center_i.x = int(center.x);
+    center_i.y = int(center.y);
+    size_i.width = int(size.width);
+    size_i.height = int(size.height);
+
+    if (angle <= -45.) {
+        angle -= 270.;
+        int temp = size_i.width;
+        size_i.width = size_i.height;
+        size_i.height = temp;
+    }
+    auto M = cv::getRotationMatrix2D(center_i, angle, 1);
+    cv::Mat img_rot, img_crop;
+    cv::warpAffine(img, img_rot, M, img.size(), cv::INTER_CUBIC);
+    getRectSubPix(img_rot, size_i, center_i, img_crop);
+    return img_crop;
+}
+
 std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > SyszuxOcrDetect::operator() (cv::Mat img)
 {
     std::vector<cv::Mat> crop_imgs;
@@ -54,6 +78,8 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
 
     std::vector<std::vector<float>> bboxes;
     int label_num = torch::max(label).item<int>() + 1;
+    std::vector<cv::RotatedRect> tilt_rects;
+    std::vector<std::vector<float>> horizon_rects;
     for(int i=1; i<label_num; i++)
     {
         torch::Tensor mask_index = (label==i);
@@ -76,27 +102,37 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         cv::Mat points_mat(points.size(0), points.size(1), CV_32FC1);
         std::memcpy((void *) points_mat.data, points.data_ptr(), torch::elementSize(torch::kFloat) * points.numel());
         auto rect = cv::minAreaRect(points_mat);
-        cv::Mat crop_box;
-        cv::boxPoints(rect, crop_box);
+        
+        cv::Point2f center = rect.center;
+        cv::Size2f size = rect.size;
+        float angle = rect.angle;
+        rect.center.x = rect.center.x * scale2[0];
+        rect.center.y = rect.center.y * scale2[1];
+        rect.size.width = rect.size.width * scale2[0];
+        rect.size.height = rect.size.height * scale2[1];
+	if (std::abs(angle+90)<0.5 || std::abs(angle)<0.5) {
+            cv::Mat crop_box;
+            cv::boxPoints(rect, crop_box);
 
-        auto crop_box_tensor = torch::from_blob(crop_box.data, {crop_box.rows, crop_box.cols}).toType(torch::kFloat);
-        crop_box_tensor = crop_box_tensor.to(device_);
-        crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).mul_(scale2[0]);
-        crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).mul_(scale2[1]);
-        crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).clamp_(0, img.cols);
-        crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).clamp_(0, img.rows);
+            auto crop_box_tensor = torch::from_blob(crop_box.data, {crop_box.rows, crop_box.cols}).toType(torch::kFloat);
+            crop_box_tensor = crop_box_tensor.to(device_);
+            crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).clamp_(0, img.cols);
+            crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).clamp_(0, img.rows);
 
-        auto max_tensor = std::get<0>(torch::max(crop_box_tensor, 0));
-        auto min_tensor = std::get<0>(torch::min(crop_box_tensor, 0));
-        float x_max = max_tensor[0].item().toFloat();
-        float y_max = max_tensor[1].item().toFloat();
-        float x_min = min_tensor[0].item().toFloat();
-        float y_min = min_tensor[1].item().toFloat();
+            auto max_tensor = std::get<0>(torch::max(crop_box_tensor, 0));
+            auto min_tensor = std::get<0>(torch::min(crop_box_tensor, 0));
+            float x_max = max_tensor[0].item().toFloat();
+            float y_max = max_tensor[1].item().toFloat();
+            float x_min = min_tensor[0].item().toFloat();
+            float y_min = min_tensor[1].item().toFloat();
 
-        std::vector<float> bbox = {x_min, y_min, x_max, y_max};
-        bboxes.push_back(bbox);
+            horizon_rects.push_back({x_min, y_min, x_max, y_max});
+        }
+	else {
+            tilt_rects.push_back(rect);
+        }
     }
-    std::vector<std::vector<float>> keep = mergeBox(bboxes);
+    std::vector<std::vector<float>> keep = mergeBox(horizon_rects);
     std::vector<std::vector<int>> rects;
     for (auto rect : keep) {
         int x_min = (int)rect[0];
@@ -107,9 +143,23 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         x_min = (x_min - crop_gap_) <= 0 ? 0 : (x_min - crop_gap_);
         auto crop_img = img(cv::Rect(x_min, y_min, x_max-x_min, y_max-y_min));
         crop_imgs.push_back(crop_img);
-        rects.push_back({x_min, y_min, x_max, y_max});
-
+        rects.push_back({x_min, y_min, x_min, y_max, x_max, y_max, x_max, y_min});
     }
+
+    for (auto rect : tilt_rects) {
+        cv::Mat crop_box;
+        cv::boxPoints(rect, crop_box);
+        std::vector<int> rect_;
+        for (int row=0; row<crop_box.rows; row++) {
+            for (int col=0; col<crop_box.cols; col++) {
+                rect_.push_back(int(crop_box.at<float>(row, col)));
+            }
+	}
+        rects.push_back(rect_);
+        cv::Mat crop_img = cropRect(img, rect);
+        crop_imgs.push_back(crop_img);
+    }
+
     std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> crop_imgs_and_rects(crop_imgs, rects);
     return crop_imgs_and_rects;
 }
