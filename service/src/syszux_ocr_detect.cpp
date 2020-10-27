@@ -110,7 +110,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         rect.center.y = rect.center.y * scale2[1];
         rect.size.width = rect.size.width * scale2[0];
         rect.size.height = rect.size.height * scale2[1];
-	if (std::abs(angle+90)<0.5 || std::abs(angle)<0.5) {
+        if (std::abs(angle+90)<0.5 || std::abs(angle)<0.5) {
             cv::Mat crop_box;
             cv::boxPoints(rect, crop_box);
 
