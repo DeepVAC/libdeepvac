@@ -29,7 +29,7 @@ class SyszuxOcrDetect : public Deepvac {
         std::vector<std::vector<int>> adaptorPse(torch::Tensor input_data, float min_area);
         bool isMerge(std::vector<float> rect1, std::vector<float> rect2);
         std::vector<std::vector<float>> mergeBox(std::vector<std::vector<float>> rects);
-        cv::Mat cropRect(cv::Mat img, cv::RotatedRect rotated_rects);
+        cv::Mat cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects);
     private:
         int long_size_{1280};
         int crop_gap_{10};

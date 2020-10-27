@@ -8,14 +8,14 @@
 #include "syszux_ocr_detect.h"
 namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac(ocrdet_deepvac, device) {}
+SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/pse/pse1.deepvac"/*ocrdet_deepvac*/, device) {}
 
 void SyszuxOcrDetect::set(int long_size, int crop_gap) {
     long_size_ = long_size;
     crop_gap_ = crop_gap;
 }
 
-cv::Mat SyszuxOcrDetect::cropRect(cv::Mat img, cv::RotatedRect rotated_rects) {
+cv::Mat SyszuxOcrDetect::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) {
     cv::Point2f center = rotated_rects.center;
     cv::Size2f size = rotated_rects.size;
     float angle = rotated_rects.angle;
@@ -35,7 +35,7 @@ cv::Mat SyszuxOcrDetect::cropRect(cv::Mat img, cv::RotatedRect rotated_rects) {
     auto M = cv::getRotationMatrix2D(center_i, angle, 1);
     cv::Mat img_rot, img_crop;
     cv::warpAffine(img, img_rot, M, img.size(), cv::INTER_CUBIC);
-    getRectSubPix(img_rot, size_i, center_i, img_crop);
+    cv::getRectSubPix(img_rot, size_i, center_i, img_crop);
     return img_crop;
 }
 
@@ -134,7 +134,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     }
     std::vector<std::vector<float>> keep = mergeBox(horizon_rects);
     std::vector<std::vector<int>> rects;
-    for (auto rect : keep) {
+    for (auto &rect : keep) {
         int x_min = (int)rect[0];
         int y_min = (int)rect[1];
         int x_max = (int)rect[2];
@@ -146,7 +146,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         rects.push_back({x_min, y_min, x_min, y_max, x_max, y_max, x_max, y_min});
     }
 
-    for (auto rect : tilt_rects) {
+    for (auto &rect : tilt_rects) {
         cv::Mat crop_box;
         cv::boxPoints(rect, crop_box);
         std::vector<int> rect_;
@@ -154,7 +154,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
             for (int col=0; col<crop_box.cols; col++) {
                 rect_.push_back(int(crop_box.at<float>(row, col)));
             }
-	}
+        }
         rects.push_back(rect_);
         cv::Mat crop_img = cropRect(img, rect);
         crop_imgs.push_back(crop_img);
@@ -175,7 +175,7 @@ std::vector<std::vector<float>> SyszuxOcrDetect::mergeBox(std::vector<std::vecto
         auto iter = std::remove(rects.begin(), rects.end(), cur_rect);
         rects.erase(iter, rects.end());
         std::vector<std::vector<float>> second2last_rects = rects;
-        for (auto rect : second2last_rects) {
+        for (auto &rect : second2last_rects) {
         if (isMerge(cur_rect, rect)) {
             float x_min = std::min(cur_rect[0], rect[0]);
             float y_min = std::min(cur_rect[1], rect[1]);
