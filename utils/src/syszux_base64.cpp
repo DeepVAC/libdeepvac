@@ -94,7 +94,7 @@ string base64(const unsigned char* bin, size_t len, int lineLenght) {
 		add_CR_if_needed(encodeBuffer, lineLenght);
 		encodeBuffer += '=';
 	}
-	if (lineLenght && encodeBuffer[encodeBuffer.length() - 1] != '\n') {
+	if (lineLenght > 0 && encodeBuffer[encodeBuffer.length() - 1] != '\n') {
 		encodeBuffer += '\n';
 	}
 	return encodeBuffer;
