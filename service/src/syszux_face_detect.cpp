@@ -112,6 +112,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
         return std::nullopt;
     }
 
+    landms = landms.to(torch::kCPU);
     cv::Mat landms_mat(landms.size(0), landms.size(1), CV_32F);
     std::memcpy((void *) landms_mat.data, landms.data_ptr(), torch::elementSize(torch::kF32) * landms.numel());
     
