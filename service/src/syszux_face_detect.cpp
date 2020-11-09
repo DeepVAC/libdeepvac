@@ -14,7 +14,7 @@
 
 namespace deepvac{
 
-SyszuxFaceDetect::SyszuxFaceDetect(std::string device):Deepvac(facedet_deepvac, device),
+SyszuxFaceDetect::SyszuxFaceDetect(std::string device):Deepvac("/gemfield/hostpv/gemfield/facedet.deepvac", device),
     prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
 std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
@@ -120,7 +120,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     for(int i=0; i<landms_mat.rows; i++){
         auto landmark = landms_mat.row(i);
         cv::Mat dst_img = align_face_(frame_ori, landmark);
-	dst_img.convertTo(dst_img, CV_32FC1);
+        dst_img.convertTo(dst_img, CV_32FC3);
         detect_vec.push_back(dst_img);
     }
     return detect_vec;
