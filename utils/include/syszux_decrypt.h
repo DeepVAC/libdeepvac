@@ -39,9 +39,9 @@ namespace gemfield_org{
     class SyszuxDecrypt{
         public:
             SyszuxDecrypt(){
-	        ctx_ = EVP_CIPHER_CTX_new();
-	        GEMFIELD_I("construct SyszuxDecrypt succeeded.");
-	    } ;
+                ctx_ = EVP_CIPHER_CTX_new();
+                GEMFIELD_I("construct SyszuxDecrypt succeeded.");
+            };
             SyszuxDecrypt(const SyszuxDecrypt&) = delete;
             SyszuxDecrypt& operator=(const SyszuxDecrypt&) = delete;
             SyszuxDecrypt(SyszuxDecrypt&&) = default;
