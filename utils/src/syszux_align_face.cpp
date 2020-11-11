@@ -112,10 +112,10 @@ cv::Mat AlignFace::findNonereflectiveSimilarity(cv::Mat& facial_5pts, cv::Mat& r
     auto res = torch::lstsq(U_tensor, X_tensor);
     torch::Tensor r = std::get<0>(res);
 
-    double sc = (double)(r[0].item<float>());
-    double ss = (double)(r[1].item<float>());
-    double tx = (double)(r[2].item<float>());
-    double ty = (double)(r[3].item<float>());
+    double sc = r[0].item<double>();
+    double ss = r[1].item<double>();
+    double tx = r[2].item<double>();
+    double ty = r[3].item<double>();
     
     double Tinv_vec[3][3] = {{sc, -ss, 0.},{ss, sc, 0.},{tx, ty, 1.}};
     cv::Mat trans_inv = cv::Mat(3, 3, CV_64F, Tinv_vec);
