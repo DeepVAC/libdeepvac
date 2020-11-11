@@ -41,6 +41,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     input_tensor[0][0] = input_tensor[0][0].sub_(104);
     input_tensor[0][1] = input_tensor[0][1].sub_(117);
     input_tensor[0][2] = input_tensor[0][2].sub_(123);
+
     
     auto output = forwardTuple(input_tensor);
     //Nx4    //Nx2    //Nx10
@@ -119,6 +120,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
     for(int i=0; i<landms_mat.rows; i++){
         auto landmark = landms_mat.row(i);
         cv::Mat dst_img = align_face_(frame_ori, landmark);
+        dst_img.convertTo(dst_img, CV_32FC3);
         detect_vec.push_back(dst_img);
     }
     return detect_vec;
