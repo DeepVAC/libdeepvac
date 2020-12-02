@@ -19,7 +19,15 @@ foreach( testsyszuxfile ${EXAMPLES_LIST} )
     message(STATUS "Add test binary: ${testfile}")
     string(REPLACE ".cpp" "" testname ${testfile} )
     add_executable( ${testname} ${testsyszuxfile} )
-    target_link_libraries( ${testname} deepvac ${TORCH_LIBRARIES} ${OpenCV_LIBS})
+
+    if(BUILD_STATIC)
+        target_compile_options(${testname} PRIVATE -fopenmp)
+        target_link_options(${testname} PRIVATE -fopenmp)
+        target_link_libraries( ${testname} deepvac ${TORCH_ARCHIVE_LIB} ${TORCH_STATIC_LIB} ${OpenCV_LIBS})
+        target_link_directories(${testname} PRIVATE ${TORCH_INSTALL_PREFIX}/lib)
+    else()
+        target_link_libraries( ${testname} deepvac ${TORCH_LIBRARIES} ${OpenCV_LIBS})
+    endif()
     target_include_directories(${testname} PUBLIC 
         "$<INSTALL_INTERFACE:include/deepvac>"   
         "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${CMAKE_CURRENT_SOURCE_DIR}/include>"

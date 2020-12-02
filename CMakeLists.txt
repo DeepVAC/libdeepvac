@@ -3,14 +3,17 @@
 # You may not use this file except in compliance with the License.
 
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+set(DEEPVAC_VERSION 0.1.0)
 project(deepvac
-    VERSION 0.1.0
+	VERSION ${DEEPVAC_VERSION}
     DESCRIPTION "A library for using PyTorch model in C++."
     HOMEPAGE_URL "https://github.com/deepvac/libdeepvac"
     LANGUAGES CXX)
 
 option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
 option(BUILD_STATIC "build static library" OFF)
+option(USE_ONNX "Use ONNX" OFF)
+
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
@@ -25,10 +28,6 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_COMPILER /usr/bin/gcc-9)
 set(CMAKE_CXX_COMPILER /usr/bin/g++-9)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 
 #setup library output dir
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
@@ -45,6 +44,35 @@ endif()
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
 
+#libtorch static stuff
+SET (TORCH_ARCHIVE_LIB -Wl,--whole-archive torch torch_cpu -Wl,--no-whole-archive)
+SET (TORCH_STATIC_LIB c10 nnpack pytorch_qnnpack XNNPACK pthreadpool cpuinfo clog dnnl fmt foxi_loader)
+
+if(USE_ONNX)
+    string(APPEND TORCH_STATIC_LIB " onnx onnx_proto")
+endif()
+
+if(USE_SLEEF)
+    string(APPEND TORCH_STATIC_LIB " sleef")
+endif()
+
+if(USE_PROTO)
+    string(APPEND TORCH_STATIC_LIB " caffe2_protos protobuf protoc")
+endif()
+
+if(USE_PERFKERNELS)
+    string(APPEND TORCH_STATIC_LIB " Caffe2_perfkernels_avx Caffe2_perfkernels_avx2 Caffe2_perfkernels_avx512")
+endif()
+
+if(USE_OPENBLAS)
+    string(APPEND TORCH_STATIC_LIB " openblas")
+endif()
+
+if(USE_NUMA)
+    string(APPEND TORCH_STATIC_LIB " numa")
+endif()
+
+#
 macro (add_syszux_sources)
     file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
@@ -124,6 +152,7 @@ foreach(_src ${FLAGS_FILE_LIST})
 endforeach()
 
 target_compile_options(deepvac PRIVATE -Werror)
+target_compile_options(deepvac PUBLIC -fopenmp)
 
 find_program(STRIP_COMMAND NAMES "strip")
 if(STRIP_COMMAND AND (NOT BUILD_STATIC))
@@ -134,11 +163,24 @@ endif()
 add_subdirectory(python)
 add_subdirectory(examples)
 
+#config helper
+configure_file(
+    ${PROJECT_SOURCE_DIR}/cmake/DeepvacConfigVersion.cmake.in
+    ${PROJECT_BINARY_DIR}/DeepvacConfigVersion.cmake
+    @ONLY)
+configure_file(
+    ${TORCH_ROOT}/cmake/DeepvacConfig.cmake.in
+    ${PROJECT_BINARY_DIR}/DeepvacConfig.cmake
+    @ONLY)
+install(FILES
+    ${PROJECT_BINARY_DIR}/DeepvacConfigVersion.cmake
+    ${PROJECT_BINARY_DIR}/DeepvacConfig.cmake
+    DESTINATION share/deepvac)
+#
 message(STATUS "install headers: " ${HEADER_FILE_LIST})
 
 install(TARGETS deepvac EXPORT deepvac DESTINATION "lib")
 install(FILES ${HEADER_FILE_LIST} DESTINATION "include/deepvac")
 
 install(EXPORT deepvac DESTINATION "share/deepvac")
-install(FILES ${PROJECT_SOURCE_DIR}/cmake/deepvac-config.cmake DESTINATION share/deepvac)
 install(FILES ${DEEPVAC_FILE_LIST} DESTINATION "lib/deepvac") 
