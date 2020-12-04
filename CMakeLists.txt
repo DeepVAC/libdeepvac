@@ -66,10 +66,11 @@ if(BUILD_STATIC)
     #libtorch_cpu.a
     find_library(TORCH_CPU_LIBRARY torch_cpu PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
     find_library(TORCH_CUDA_LIBRARY torch_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+    find_library(C10_CUDA_LIBRARY c10_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
 
-    SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${TORCH_LIBRARY} ${TORCH_CPU_LIBRARY} ${TORCH_CUDA_LIBRARY} -Wl,--no-whole-archive")
+    SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${TORCH_LIBRARY} ${TORCH_CPU_LIBRARY} ${TORCH_CUDA_LIBRARY} ${C10_CUDA_LIBRARY} -Wl,--no-whole-archive")
 
-    append_lib_if_found(c10 c10_cuda nnpack pytorch_qnnpack XNNPACK pthreadpool eigen_blas cpuinfo clog)
+    append_lib_if_found(c10 nnpack pytorch_qnnpack XNNPACK pthreadpool eigen_blas cpuinfo clog)
     append_lib_if_found(caffe2_protos protobuf-lite protobuf protoc)
     append_lib_if_found(dnnl fbgemm mkldnn sleef asmjit)
     append_lib_if_found(onnx onnx_proto)
