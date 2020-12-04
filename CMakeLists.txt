@@ -12,7 +12,7 @@ project(deepvac
 
 option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
 option(BUILD_STATIC "build static library" OFF)
-option(USE_ONNX "Use ONNX" OFF)
+option(USE_CUDA "Use CUDA" OFF)
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -44,35 +44,44 @@ endif()
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
 
+macro(append_lib_if_found)
+    foreach (_arg ${ARGN})
+        find_library(${_arg}_LIBRARY ${_arg} PATHS "${TORCH_INSTALL_PREFIX}/lib")
+        if(${_arg}_LIBRARY)
+	    list(APPEND TORCH_STATIC_LIBRARIES ${${_arg}_LIBRARY})
+        else()
+	    message(WARNING "static library ${${_arg}_LIBRARY} not found.")
+        endif()
+    endforeach()
+endmacro()
+
+
 #libtorch static stuff
-SET (TORCH_ARCHIVE_LIB -Wl,--whole-archive torch torch_cpu -Wl,--no-whole-archive)
-SET (TORCH_STATIC_LIB c10 nnpack pytorch_qnnpack XNNPACK pthreadpool cpuinfo clog dnnl fmt foxi_loader)
+if(BUILD_STATIC)
+    message(STATUS "will find libtorch static library since BUILD_STATIC is ON")
 
-if(USE_ONNX)
-    string(APPEND TORCH_STATIC_LIB " onnx onnx_proto")
+    #libtorch.a
+    find_library(TORCH_LIBRARY torch PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+
+    #libtorch_cpu.a
+    find_library(TORCH_CPU_LIBRARY torch_cpu PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+    find_library(TORCH_CUDA_LIBRARY torch_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+
+    SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${TORCH_LIBRARY} ${TORCH_CPU_LIBRARY} ${TORCH_CUDA_LIBRARY} -Wl,--no-whole-archive")
+
+    append_lib_if_found(c10 c10_cuda nnpack pytorch_qnnpack XNNPACK pthreadpool eigen_blas cpuinfo clog)
+    append_lib_if_found(caffe2_protos protobuf-lite protobuf protoc)
+    append_lib_if_found(dnnl fbgemm mkldnn sleef asmjit)
+    append_lib_if_found(onnx onnx_proto)
+    append_lib_if_found(nccl_static)
+    message(STATUS "found libtorch static library: ${TORCH_STATIC_LIBRARIES}")
+    if(USE_CUDA)
+        message(STATUS "will build with CUDA")
+        set(CUDA_LIBRARIES "-lcusparse -lcufft -lcufftw -lcupti -lcusolver -lcurand -lcublas -lcublasLt -lnvToolsExt -lcudnn -lcuda -lnvrtc -lcudart")
+    endif()
 endif()
 
-if(USE_SLEEF)
-    string(APPEND TORCH_STATIC_LIB " sleef")
-endif()
 
-if(USE_PROTO)
-    string(APPEND TORCH_STATIC_LIB " caffe2_protos protobuf protoc")
-endif()
-
-if(USE_PERFKERNELS)
-    string(APPEND TORCH_STATIC_LIB " Caffe2_perfkernels_avx Caffe2_perfkernels_avx2 Caffe2_perfkernels_avx512")
-endif()
-
-if(USE_OPENBLAS)
-    string(APPEND TORCH_STATIC_LIB " openblas")
-endif()
-
-if(USE_NUMA)
-    string(APPEND TORCH_STATIC_LIB " numa")
-endif()
-
-#
 macro (add_syszux_sources)
     file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
@@ -126,6 +135,7 @@ add_subdirectory(service)
 if(BUILD_STATIC)
     message(STATUS "will build libdeepvac static library")
     add_library(deepvac STATIC ${SRC_LIST})
+    target_compile_options(deepvac PUBLIC -fopenmp)
 else()
     message(STATUS "will build libdeepvac shared library")
     add_library(deepvac SHARED ${SRC_LIST})
@@ -138,6 +148,7 @@ target_include_directories(deepvac PUBLIC
 
 set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(deepvac PROPERTIES LINK_FLAGS_RELEASE -s)
+target_compile_options(deepvac PRIVATE -Werror)
 
 foreach(_src ${FLAGS_FILE_LIST})
     string(REGEX MATCH "^[^@]+" def_name ${_src})
@@ -150,9 +161,6 @@ foreach(_src ${FLAGS_FILE_LIST})
         ${def_name}="${CMAKE_INSTALL_PREFIX}/lib/deepvac/${def_value}"
     )
 endforeach()
-
-target_compile_options(deepvac PRIVATE -Werror)
-target_compile_options(deepvac PUBLIC -fopenmp)
 
 find_program(STRIP_COMMAND NAMES "strip")
 if(STRIP_COMMAND AND (NOT BUILD_STATIC))
@@ -169,7 +177,7 @@ configure_file(
     ${PROJECT_BINARY_DIR}/DeepvacConfigVersion.cmake
     @ONLY)
 configure_file(
-    ${TORCH_ROOT}/cmake/DeepvacConfig.cmake.in
+    ${PROJECT_SOURCE_DIR}/cmake/DeepvacConfig.cmake.in
     ${PROJECT_BINARY_DIR}/DeepvacConfig.cmake
     @ONLY)
 install(FILES
