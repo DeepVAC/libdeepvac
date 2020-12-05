@@ -10,6 +10,7 @@ project(deepvac
     HOMEPAGE_URL "https://github.com/deepvac/libdeepvac"
     LANGUAGES CXX)
 
+option(USE_MKL "use MKL as pytorch LAPACK backend" ON)
 option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
 option(BUILD_STATIC "build static library" OFF)
 option(USE_CUDA "Use CUDA" OFF)
@@ -25,15 +26,60 @@ if(NOT LINUX)
     message(FATAL_ERROR "deepvac does not support platform: " ${CMAKE_SYSTEM_NAME})
 endif()
 
+if(USE_MKL)
+    if(NOT DEFINED MKL_HOME)
+        set(MKL_HOME "/opt/intel/mkl")
+    endif()
+    if(NOT EXISTS ${MKL_HOME})
+        message(FATAL "unable to locate MKL library, either set MKL_HOME or install MKL")
+    endif()
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(MKL_ARCHITECTURES intel64)
+    else()
+        set(MKL_ARCHITECTURES ia32)
+    endif()
+    set(INT_LIB "libmkl_intel_lp64.a")
+    set(SEQ_LIB "libmkl_sequential.a")
+    #set(THR_LIB "libmkl_intel_thread.a")
+    set(THR_LIB "libmkl_gnu_thread.a")
+    set(COR_LIB "libmkl_core.a")
+    
+    find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS ${MKL_ROOT}/include)
+    
+    set(MKL_LIB_PATH ${MKL_HOME}/lib/${MKL_ARCHITECTURES})
+    find_library(MKL_INTERFACE_LIBRARY
+                 NAMES ${INT_LIB}
+                 PATHS ${MKL_LIB_PATH}
+                 NO_DEFAULT_PATH)
+    
+    find_library(MKL_SEQUENTIAL_LAYER_LIBRARY
+                 NAMES ${SEQ_LIB}
+                 PATHS ${MKL_LIB_PATH}
+                 NO_DEFAULT_PATH)
+    
+    find_library(MKL_THREAD_LAYER_LIBRARY
+                 NAMES ${THR_LIB}
+                 PATHS ${MKL_LIB_PATH}
+                 NO_DEFAULT_PATH)
+    
+    find_library(MKL_CORE_LIBRARY
+                 NAMES ${COR_LIB}
+                 PATHS ${MKL_LIB_PATH}
+                 NO_DEFAULT_PATH)
+    
+    set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR})
+    set(MKL_LIBRARIES ${MKL_CORE_LIBRARY} ${MKL_THREAD_LAYER_LIBRARY} ${MKL_INTERFACE_LIBRARY} ${MKL_SEQUENTIAL_LAYER_LIBRARY})
+    set(MKL_LIBRARIES -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_COMPILER /usr/bin/gcc-9)
 set(CMAKE_CXX_COMPILER /usr/bin/g++-9)
-
 #setup library output dir
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #setup binary output dir
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 #replace with your libtorch dir
 #set(CMAKE_PREFIX_PATH /home/gemfield/libtorch/)
 if(GARRULOUS_GEMFIELD)
@@ -62,18 +108,27 @@ if(BUILD_STATIC)
 
     #libtorch.a
     find_library(TORCH_LIBRARY torch PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-
     #libtorch_cpu.a
     find_library(TORCH_CPU_LIBRARY torch_cpu PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-    find_library(TORCH_CUDA_LIBRARY torch_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-    find_library(C10_CUDA_LIBRARY c10_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+
+    if(USE_CUDA)
+        find_library(TORCH_CUDA_LIBRARY torch_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+        find_library(C10_CUDA_LIBRARY c10_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+    endif()
 
     SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${TORCH_LIBRARY} ${TORCH_CPU_LIBRARY} ${TORCH_CUDA_LIBRARY} ${C10_CUDA_LIBRARY} -Wl,--no-whole-archive")
 
     append_lib_if_found(c10 nnpack pytorch_qnnpack XNNPACK pthreadpool eigen_blas cpuinfo clog)
     append_lib_if_found(caffe2_protos protobuf-lite protobuf protoc)
     append_lib_if_found(dnnl fbgemm mkldnn sleef asmjit)
-    append_lib_if_found(onnx onnx_proto)
+    append_lib_if_found(onnx onnx_proto foxi_loader)
+
+    if(USE_MKL)
+        list(APPEND TORCH_STATIC_LIBRARIES ${MKL_LIBRARIES})
+        list(APPEND TORCH_STATIC_LIBRARIES "-lpthread")
+        list(APPEND TORCH_STATIC_LIBRARIES "-lm")
+        list(APPEND TORCH_STATIC_LIBRARIES "-ldl")
+    endif()
     message(STATUS "found libtorch static library: ${TORCH_STATIC_LIBRARIES}")
     if(USE_CUDA)
         message(STATUS "will build with CUDA")
