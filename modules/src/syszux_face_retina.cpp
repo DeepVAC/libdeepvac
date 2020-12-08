@@ -9,15 +9,15 @@
 #include <algorithm>
 #include <sstream>
 #include <filesystem>
-#include "syszux_face_detect.h"
+#include "syszux_face_retina.h"
 #include "gemfield.h"
 
 namespace deepvac{
 
-SyszuxFaceDetect::SyszuxFaceDetect(std::string device):Deepvac(facedet_deepvac, device),
+SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac(path, device),
     prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
-std::optional<std::vector<cv::Mat>> SyszuxFaceDetect::operator()(cv::Mat frame){
+std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::operator()(cv::Mat frame){
     GEMFIELD_SI;
     int h = frame.rows;
     int w = frame.cols;

@@ -14,14 +14,14 @@
 #include "syszux_img2tensor.h"
 
 namespace deepvac{
-class SyszuxFaceDetect : public Deepvac{
+class SyszuxFaceRetina : public Deepvac{
     public:
-        SyszuxFaceDetect(std::string device = "cpu");
-        SyszuxFaceDetect(const SyszuxFaceDetect&) = delete;
-        SyszuxFaceDetect& operator=(const SyszuxFaceDetect&) = delete;
-        SyszuxFaceDetect(SyszuxFaceDetect&&) = default;
-        SyszuxFaceDetect& operator=(SyszuxFaceDetect&&) = default;
-        virtual ~SyszuxFaceDetect() = default;
+        SyszuxFaceRetina(std::string path, std::string device = "cpu");
+        SyszuxFaceRetina(const SyszuxFaceRetina&) = delete;
+        SyszuxFaceRetina& operator=(const SyszuxFaceRetina&) = delete;
+        SyszuxFaceRetina(SyszuxFaceRetina&&) = default;
+        SyszuxFaceRetina& operator=(SyszuxFaceRetina&&) = default;
+        virtual ~SyszuxFaceRetina() = default;
         virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
     
     private:

@@ -13,14 +13,14 @@
 #include <algorithm>
 
 namespace deepvac {
-class SyszuxOcrDetect : public Deepvac {
+class SyszuxOcrPse : public Deepvac {
     public:
-        SyszuxOcrDetect(std::string device="cpu");
-        SyszuxOcrDetect(const SyszuxOcrDetect&) = delete;
-        SyszuxOcrDetect& operator=(const SyszuxOcrDetect&) = delete;
-        SyszuxOcrDetect(SyszuxOcrDetect&&) = default;
-        SyszuxOcrDetect& operator=(SyszuxOcrDetect&&) = default;
-        virtual ~SyszuxOcrDetect() = default;
+        SyszuxOcrPse(std::string path, std::string device="cpu");
+        SyszuxOcrPse(const SyszuxOcrPse&) = delete;
+        SyszuxOcrPse& operator=(const SyszuxOcrPse&) = delete;
+        SyszuxOcrPse(SyszuxOcrPse&&) = default;
+        SyszuxOcrPse& operator=(SyszuxOcrPse&&) = default;
+        virtual ~SyszuxOcrPse() = default;
         virtual std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> operator() (cv::Mat frame);
         void set(int long_size, int gap);
     private:

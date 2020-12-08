@@ -4,7 +4,7 @@
  * You may not use this file except in compliance with the License.
  */
 
-#include "syszux_ocr_detect.h"
+#include "syszux_ocr_pse.h"
 #include "gemfield.h"
 
 using namespace deepvac;
@@ -18,7 +18,7 @@ int main(int argc, char** argv)
     std::string path = argv[2];
     int long_size = 1280;
     int crop_gap = 5;
-    SyszuxOcrDetect ocr_detect(device);
+    SyszuxOcrPse ocr_detect(ocr_pse_deepvac, device);
     ocr_detect.set(long_size, crop_gap);
    
     cv::Mat img_raw = cv::imread(path);

@@ -5,17 +5,17 @@
 */
 
 #include "opencv2/opencv.hpp"
-#include "syszux_ocr_detect.h"
+#include "syszux_ocr_pse.h"
 namespace deepvac {
 
-SyszuxOcrDetect::SyszuxOcrDetect(std::string device):Deepvac(ocrdet_deepvac, device) {}
+SyszuxOcrPse::SyszuxOcrPse(std::string path, std::string device):Deepvac(path, device) {}
 
-void SyszuxOcrDetect::set(int long_size, int crop_gap) {
+void SyszuxOcrPse::set(int long_size, int crop_gap) {
     long_size_ = long_size;
     crop_gap_ = crop_gap;
 }
 
-cv::Mat SyszuxOcrDetect::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) {
+cv::Mat SyszuxOcrPse::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) {
     cv::Point2f center = rotated_rects.center;
     cv::Size2f size = rotated_rects.size;
     float angle = rotated_rects.angle;
@@ -39,7 +39,7 @@ cv::Mat SyszuxOcrDetect::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) 
     return img_crop;
 }
 
-std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > SyszuxOcrDetect::operator() (cv::Mat img)
+std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > SyszuxOcrPse::operator() (cv::Mat img)
 {
     std::vector<cv::Mat> crop_imgs;
     cv::Mat resize_img, rgb_img;
@@ -164,7 +164,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     return crop_imgs_and_rects;
 }
 
-std::vector<std::vector<float>> SyszuxOcrDetect::mergeBox(std::vector<std::vector<float>> rects) {
+std::vector<std::vector<float>> SyszuxOcrPse::mergeBox(std::vector<std::vector<float>> rects) {
     std::vector<std::vector<float>> keep;
     while (rects.size() > 0) {
         if (rects.size() == 1) {
@@ -191,7 +191,7 @@ std::vector<std::vector<float>> SyszuxOcrDetect::mergeBox(std::vector<std::vecto
     return keep;
 }
 
-bool SyszuxOcrDetect::isMerge(std::vector<float> rect1, std::vector<float> rect2) {
+bool SyszuxOcrPse::isMerge(std::vector<float> rect1, std::vector<float> rect2) {
     float x1_min = rect1[0];
     float y1_min = rect1[1];
     float x1_max = rect1[2];
@@ -217,7 +217,7 @@ bool SyszuxOcrDetect::isMerge(std::vector<float> rect1, std::vector<float> rect2
     return false;
 }
 
-void SyszuxOcrDetect::getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {
+void SyszuxOcrPse::getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {
     for (int i = 0; i < input_data.size(0); ++i) {
         cv::Mat kernal(input_data[i].size(0), input_data[i].size(1), CV_8UC1);
         std::memcpy((void *) kernal.data, input_data[i].data_ptr(), sizeof(torch::kU8) * input_data[i].numel());
@@ -225,7 +225,7 @@ void SyszuxOcrDetect::getKernals(torch::Tensor input_data, std::vector<cv::Mat> 
     }
 }
 
-void SyszuxOcrDetect::growingTextLine(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area) {
+void SyszuxOcrPse::growingTextLine(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area) {
     cv::Mat label_mat;
     int label_num = connectedComponents(kernals[kernals.size() - 1], label_mat, 4);
 
@@ -289,7 +289,7 @@ void SyszuxOcrDetect::growingTextLine(std::vector<cv::Mat> &kernals, std::vector
     }
 }
 
-std::vector<std::vector<int>> SyszuxOcrDetect::adaptorPse(torch::Tensor input_data, float min_area) {
+std::vector<std::vector<int>> SyszuxOcrPse::adaptorPse(torch::Tensor input_data, float min_area) {
     std::vector<cv::Mat> kernals;
     input_data = input_data.to(torch::kCPU);
     getKernals(input_data, kernals);

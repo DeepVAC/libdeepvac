@@ -5,16 +5,17 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 set(DEEPVAC_VERSION 0.1.0)
 project(deepvac
-	VERSION ${DEEPVAC_VERSION}
+    VERSION ${DEEPVAC_VERSION}
     DESCRIPTION "A library for using PyTorch model in C++."
     HOMEPAGE_URL "https://github.com/deepvac/libdeepvac"
     LANGUAGES CXX)
 
-option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
-option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
-option(BUILD_STATIC "build static library" OFF)
-option(USE_CUDA "Use CUDA" OFF)
 
+option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
+option(BUILD_STATIC "build static libdeepvac library" OFF)
+option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
+option(USE_STATIC_LIBTORCH "use LibTorch static library" OFF)
+option(USE_CUDA "Use CUDA" OFF)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
@@ -26,7 +27,7 @@ if(NOT LINUX)
     message(FATAL_ERROR "deepvac does not support platform: " ${CMAKE_SYSTEM_NAME})
 endif()
 
-if(USE_MKL)
+if(USE_MKL AND USE_STATIC_LIBTORCH)
     if(NOT DEFINED MKL_HOME)
         set(MKL_HOME "/opt/intel/mkl")
     endif()
@@ -38,6 +39,7 @@ if(USE_MKL)
     else()
         set(MKL_ARCHITECTURES ia32)
     endif()
+    #must consistent with pytorch static library.
     set(INT_LIB "libmkl_intel_lp64.a")
     set(SEQ_LIB "libmkl_sequential.a")
     #set(THR_LIB "libmkl_intel_thread.a")
@@ -94,17 +96,16 @@ macro(append_lib_if_found)
     foreach (_arg ${ARGN})
         find_library(${_arg}_LIBRARY ${_arg} PATHS "${TORCH_INSTALL_PREFIX}/lib")
         if(${_arg}_LIBRARY)
-	    list(APPEND TORCH_STATIC_LIBRARIES ${${_arg}_LIBRARY})
+	        list(APPEND TORCH_STATIC_LIBRARIES ${${_arg}_LIBRARY})
         else()
-	    message(WARNING "static library ${${_arg}_LIBRARY} not found.")
+	        message(WARNING "static library ${${_arg}_LIBRARY} not found.")
         endif()
     endforeach()
 endmacro()
 
-
 #libtorch static stuff
-if(BUILD_STATIC)
-    message(STATUS "will find libtorch static library since BUILD_STATIC is ON")
+if(USE_STATIC_LIBTORCH)
+    message(STATUS "will find libtorch static library since USE_STATIC_LIBTORCH is ON")
 
     #libtorch.a
     find_library(TORCH_LIBRARY torch PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
@@ -142,7 +143,6 @@ if(BUILD_STATIC)
     endif()
 endif()
 
-
 macro (add_syszux_sources)
     file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
@@ -170,13 +170,6 @@ macro (add_syszux_headers)
     endif()
 endmacro()
 
-macro (add_syszux_flags)
-    foreach (_src ${ARGN})
-        list (APPEND FLAGS_FILE_LIST "${_src}")
-    endforeach()
-    set (FLAGS_FILE_LIST ${FLAGS_FILE_LIST} PARENT_SCOPE)
-endmacro()
-
 message(STATUS "OpenCV library status:")
 message(STATUS "    config: ${OpenCV_DIR}")
 message(STATUS "    version: ${OpenCV_VERSION}")
@@ -189,14 +182,13 @@ message(STATUS "TORCH_HEADER: ${TORCH_INCLUDE_DIRS}")
 # add subdiretories
 add_subdirectory(utils)
 add_subdirectory(loader)
-add_subdirectory(module)
-add_subdirectory(service)
+add_subdirectory(core)
+add_subdirectory(modules)
 
 #add library
 if(BUILD_STATIC)
     message(STATUS "will build libdeepvac static library")
     add_library(deepvac STATIC ${SRC_LIST})
-    target_compile_options(deepvac PUBLIC -fopenmp)
 else()
     message(STATUS "will build libdeepvac shared library")
     add_library(deepvac SHARED ${SRC_LIST})
@@ -206,22 +198,10 @@ target_include_directories(deepvac PUBLIC
     "$<INSTALL_INTERFACE:include/deepvac>"   
     "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${HEADER_DIR_LIST};${OpenCV_INCLUDE_DIRS}>"
 )
-
+target_compile_options(deepvac PUBLIC -fopenmp)
 set_target_properties(deepvac PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(deepvac PROPERTIES LINK_FLAGS_RELEASE -s)
 target_compile_options(deepvac PRIVATE -Werror)
-
-foreach(_src ${FLAGS_FILE_LIST})
-    string(REGEX MATCH "^[^@]+" def_name ${_src})
-    string(REPLACE "_" "." def_value ${def_name})
-    string(REPLACE "${def_name}@" "" src_name ${_src})
-    set_property(
-        SOURCE ${src_name}
-        APPEND
-        PROPERTY COMPILE_DEFINITIONS
-        ${def_name}="${CMAKE_INSTALL_PREFIX}/lib/deepvac/${def_value}"
-    )
-endforeach()
 
 find_program(STRIP_COMMAND NAMES "strip")
 if(STRIP_COMMAND AND (NOT BUILD_STATIC))
