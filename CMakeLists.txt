@@ -10,7 +10,7 @@ project(deepvac
     HOMEPAGE_URL "https://github.com/deepvac/libdeepvac"
     LANGUAGES CXX)
 
-option(USE_MKL "use MKL as pytorch LAPACK backend" ON)
+option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
 option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
 option(BUILD_STATIC "build static library" OFF)
 option(USE_CUDA "Use CUDA" OFF)
@@ -68,7 +68,7 @@ if(USE_MKL)
                  NO_DEFAULT_PATH)
     
     set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR})
-    set(MKL_LIBRARIES ${MKL_CORE_LIBRARY} ${MKL_THREAD_LAYER_LIBRARY} ${MKL_INTERFACE_LIBRARY} ${MKL_SEQUENTIAL_LAYER_LIBRARY})
+    set(MKL_LIBRARIES ${MKL_CORE_LIBRARY} ${MKL_THREAD_LAYER_LIBRARY} ${MKL_INTERFACE_LIBRARY} )
     set(MKL_LIBRARIES -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group)
 endif()
 
@@ -118,10 +118,15 @@ if(BUILD_STATIC)
 
     SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${TORCH_LIBRARY} ${TORCH_CPU_LIBRARY} ${TORCH_CUDA_LIBRARY} ${C10_CUDA_LIBRARY} -Wl,--no-whole-archive")
 
-    append_lib_if_found(c10 nnpack pytorch_qnnpack XNNPACK pthreadpool eigen_blas cpuinfo clog)
+    append_lib_if_found(c10)
+    append_lib_if_found(Caffe2_perfkernels_avx512 Caffe2_perfkernels_avx2 Caffe2_perfkernels_avx)
+    append_lib_if_found(nnpack pytorch_qnnpack qnnpack XNNPACK)
     append_lib_if_found(caffe2_protos protobuf-lite protobuf protoc)
+    append_lib_if_found(onnx onnx_proto)
+    append_lib_if_found(foxi_loader fmt)
+    append_lib_if_found(clog cpuinfo pthreadpool)
+    append_lib_if_found(eigen_blas)
     append_lib_if_found(dnnl fbgemm mkldnn sleef asmjit)
-    append_lib_if_found(onnx onnx_proto foxi_loader)
 
     if(USE_MKL)
         list(APPEND TORCH_STATIC_LIBRARIES ${MKL_LIBRARIES})
