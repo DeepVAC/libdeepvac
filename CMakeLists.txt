@@ -108,16 +108,16 @@ if(USE_STATIC_LIBTORCH)
     message(STATUS "will find libtorch static library since USE_STATIC_LIBTORCH is ON")
 
     #libtorch.a
-    find_library(TORCH_LIBRARY torch PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+    find_library(torch_LIBRARY torch PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
     #libtorch_cpu.a
-    find_library(TORCH_CPU_LIBRARY torch_cpu PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+    find_library(torch_cpu_LIBRARY torch_cpu PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
 
     if(USE_CUDA)
-        find_library(TORCH_CUDA_LIBRARY torch_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-        find_library(C10_CUDA_LIBRARY c10_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+        find_library(torch_cuda_LIBRARY torch_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
+        find_library(c10_cuda_LIBRARY c10_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
     endif()
 
-    SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${TORCH_LIBRARY} ${TORCH_CPU_LIBRARY} ${TORCH_CUDA_LIBRARY} ${C10_CUDA_LIBRARY} -Wl,--no-whole-archive")
+    SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${torch_LIBRARY} ${torch_cpu_LIBRARY} ${torch_cuda_LIBRARY} ${c10_cuda_LIBRARY} -Wl,--no-whole-archive")
 
     append_lib_if_found(c10)
     append_lib_if_found(Caffe2_perfkernels_avx512 Caffe2_perfkernels_avx2 Caffe2_perfkernels_avx)
@@ -137,9 +137,34 @@ if(USE_STATIC_LIBTORCH)
     endif()
     message(STATUS "found libtorch static library: ${TORCH_STATIC_LIBRARIES}")
     if(USE_CUDA)
-        message(STATUS "will build with CUDA")
+        find_package(CUDA REQUIRED)
+        message(STATUS "will build with CUDA: ${CUDA_TOOLKIT_ROOT_DIR}")
         append_lib_if_found(nccl_static)
-        set(CUDA_LIBRARIES "-lcusparse -lcufft -lcusolver -lcublas -lcublasLt -lnvToolsExt -lcudnn -lcudart")
+        find_library(CUDNN_LIBRARY cudnn
+            HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
+            PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
+
+        find_library(cublas_LIBRARY cublas
+            HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
+            PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
+
+        find_library(cublasLT_LIBRARY cublasLt
+            HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
+            PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
+
+        list(APPEND CUDA_LIBRARIES_ALL
+            ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcurand.so
+            ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusparse.so
+            ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so
+            ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver.so
+            ${cublas_LIBRARY}
+            ${cublasLT_LIBRARY}
+            ${CUDA_nvToolsExt_LIBRARY}
+            ${CUDNN_LIBRARY}
+            ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcudart.so
+        )
+        message(STATUS "CUDA_LIBRARIES_ALL: ${CUDA_LIBRARIES_ALL}")
+        #set(CUDA_LIBRARIES "-lcurand -lcusparse -lcufft -lcusolver -lcublas -lcublasLt -lnvToolsExt -lcudnn -lcudart")
     endif()
 endif()
 

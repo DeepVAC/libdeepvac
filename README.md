@@ -8,7 +8,7 @@ LibTorch project standard.
 在MLab（云上炼丹师）实验室，我们使用[DeepVAC](https://github.com/DeepVAC/deepvac) 来训练获得新模型，使用本项目来部署模型。
 
 libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
-- 向下封装了libtorch，支持LibTorch静态库和动态库；
+- 向下封装了LibTorch，支持LibTorch静态库和动态库；
 - 向上提供Deepvac类，方便用户继承并实现其自定义的模型；
 - 在modules目录下，MLab提供了经典网络的C++实现；
 - 在utils目录下，MLab提供了网络中常见helper函数的C++实现。
@@ -35,7 +35,7 @@ libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
 - libdeepvac目前仅支持要运行在x86_64 Linux平台上的目标的编译，未来会扩展到Android、ARM Linux。
 
 # 项目依赖
-libdeepvac的编译依赖C++17编译器、CMake、opencv、libtorch。
+libdeepvac的编译依赖C++17编译器、CMake、opencv、LibTorch。
 
 #### C++17
 在Ubuntu 20.04上，最新的g++版本为9.3，已经支持C++17。  
@@ -68,10 +68,10 @@ cmake .. -DBUILD_LIST=core,imgproc,imgcodecs -DBUILD_SHARED_LIBS=ON/OFF
 make -j8 && make install
 ```
 
-#### libtorch
-支持libtorch动态库和静态库。  
-若想使用libtorch动态库，则下载[LibTorch 1.7.0](https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-with-deps-1.7.0.zip)。  
-若想使用libtorch静态库，则下载[LibTorch 1.7.0]()。
+#### LibTorch
+支持LibTorch动态库和静态库。因为目前libdeepvac仅支持目标为x86_64 Linux平台目标的编译，所以LibTorch也要下载该平台上的。
+- 若想使用LibTorch动态库，则下载[LibTorch 1.7.0](https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-with-deps-1.7.0.zip)。  
+- 若想使用LibTorch静态库，则下载[LibTorch 1.7.0]()。
 
 
 # 编译
@@ -98,3 +98,6 @@ cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch_cuda/ -DBUILD_STATIC=ON -DUSE_
 
 cmake --build . --config Release
 ```
+
+# 演示
+稍后我们会提供一个基于libdeepvac的人脸检测的项目。
