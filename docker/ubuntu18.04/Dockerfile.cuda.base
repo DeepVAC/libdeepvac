@@ -34,7 +34,7 @@ WORKDIR /gemfield
 RUN curl https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-with-deps-1.6.0.zip -o libtorch.zip && \
         unzip libtorch.zip && rm libtorch.zip
 
-RUN curl https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda.tar.gz -o libtorch_cuda.tar.gz && \
+RUN curl -L https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda.tar.gz -o libtorch_cuda.tar.gz && \
         tar zxvf libtorch_cuda.tar.gz && rm libtorch_cuda.tar.gz
 
 #do it in the morning
