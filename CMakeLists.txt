@@ -16,6 +16,7 @@ option(BUILD_STATIC "build static libdeepvac library" OFF)
 option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
 option(USE_STATIC_LIBTORCH "use LibTorch static library" OFF)
 option(USE_CUDA "Use CUDA" OFF)
+option(BUILD_ALL_EXAMPLES "build all examples" OFF)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)

@@ -75,8 +75,9 @@ make -j8 && make install
 
 #### LibTorch
 支持LibTorch动态库和静态库。因为目前libdeepvac仅支持目标为x86_64 Linux平台目标的编译，所以LibTorch也要下载该平台上的。
-- 若想使用LibTorch动态库，则下载[LibTorch 1.7.0](https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-with-deps-1.7.0.zip)。  
-- 若想使用LibTorch静态库，则下载[LibTorch 1.7.0](https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda.tar.gz)。
+- 若想使用LibTorch 1.7.0 动态库，则下载[LibTorch 1.7.0](https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-with-deps-1.7.0.zip)。  
+- 若想使用LibTorch 1.6.0 静态库，则下载[LibTorch 1.6.0](https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda_1.6.0.tar.gz)。
+- 若想使用LibTorch 1.7.0 静态库，则下载[LibTorch 1.7.0](https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda_1.7.0.tar.gz)。
 
 
 # 编译

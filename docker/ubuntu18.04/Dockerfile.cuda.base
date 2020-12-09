@@ -9,7 +9,7 @@ RUN apt-get update && \
         apt-get install -y --no-install-recommends \
         build-essential \
         software-properties-common ca-certificates apt-transport-https gnupg \ 
-        git curl wget vim unzip zlib1g-dev \
+        git curl wget vim unzip zlib1g-dev libgomp1 \
         tzdata locales libssl-dev python3-pip python3-dev
 
 RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
@@ -34,7 +34,7 @@ WORKDIR /gemfield
 RUN curl https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-with-deps-1.6.0.zip -o libtorch.zip && \
         unzip libtorch.zip && rm libtorch.zip
 
-RUN curl -L https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda.tar.gz -o libtorch_cuda.tar.gz && \
+RUN curl -L https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda_1.6.0.tar.gz -o libtorch_cuda.tar.gz && \
         tar zxvf libtorch_cuda.tar.gz && rm libtorch_cuda.tar.gz
 
 #do it in the morning

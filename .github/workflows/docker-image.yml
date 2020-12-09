@@ -17,6 +17,14 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build the base image
       run: docker build . --file docker/ubuntu18.04/Dockerfile.cuda.base --tag gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04-base-${{ steps.gemfield.outputs.sha8 }} --tag gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04-base
+    - name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.HUB_USERNAME }}
+        password: ${{ secrets.HUB_TOKEN }}
+    - name: Push Docker image
+      run: docker push gemfield/deepvac
+
     - name: Build the devel image
       run: docker build . --file docker/ubuntu18.04/Dockerfile.cuda.devel --tag gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04-${{ steps.gemfield.outputs.sha8 }} --tag gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04
     - name: Login to DockerHub

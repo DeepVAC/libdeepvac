@@ -21,6 +21,7 @@ endif()
 set(examples_dest "bin")
 
 file( GLOB EXAMPLES_LIST ${CMAKE_SOURCE_DIR}/examples/*/test_*.cpp )
+set(EXAMPLES_LIST_MIN ${CMAKE_CURRENT_SOURCE_DIR}/src/test_ocr_pse.cpp)
 #internal test
 add_syszux_flags(face_retina_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_face_retina.cpp)
 add_syszux_flags(ocr_pse_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_ocr_pse.cpp)
@@ -37,7 +38,10 @@ foreach(_src ${FLAGS_FILE_LIST})
     )
 endforeach()
 
-foreach( testsyszuxfile ${EXAMPLES_LIST} )
+if(BUILD_ALL_EXAMPLES)
+    set(EXAMPLES_LIST_MIN ${EXAMPLES_LIST})
+endif()
+foreach( testsyszuxfile ${EXAMPLES_LIST_MIN} )
     get_filename_component(testfile "${testsyszuxfile}" NAME)
     message(STATUS "Add test binary: ${testfile}")
     string(REPLACE ".cpp" "" testname ${testfile} )
@@ -54,5 +58,5 @@ foreach( testsyszuxfile ${EXAMPLES_LIST} )
         "$<INSTALL_INTERFACE:include/deepvac>"   
         "$<BUILD_INTERFACE:${TORCH_INCLUDE_DIRS};${CMAKE_CURRENT_SOURCE_DIR}/include>"
     )
-    install(TARGETS ${testname} DESTINATION "${examples_dest}")
-endforeach( testsyszuxfile ${EXAMPLES_LIST} )
+    #install(TARGETS ${testname} DESTINATION "${examples_dest}")
+endforeach( testsyszuxfile ${EXAMPLES_LIST_MIN} )
