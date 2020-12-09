@@ -35,7 +35,12 @@ libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
 - libdeepvac目前仅支持要运行在x86_64 Linux平台上的目标的编译，未来会扩展到Android、ARM Linux。
 
 # 项目依赖
-libdeepvac的编译依赖C++17编译器、CMake、opencv、LibTorch。
+libdeepvac的编译依赖C++17编译器、CMake、opencv、LibTorch。  
+你可以直接使用我们提供的Docker image来进行开发：
+```bash
+docker run -it -h libdeepvac --name libdeepvac gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04 bash
+```
+也可以自己手工配置环境依赖，如下所示：
 
 #### C++17
 在Ubuntu 20.04上，最新的g++版本为9.3，已经支持C++17。  

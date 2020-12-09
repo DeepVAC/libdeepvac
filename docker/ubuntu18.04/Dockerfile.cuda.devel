@@ -3,5 +3,5 @@ LABEL maintainer "Gemfield <gemfield@civilnet.cn>"
 
 RUN git clone https://github.com/DeepVAC/libdeepvac libdeepvac && \
         cd libdeepvac && mkdir build && mkdir install && cd build && \
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch;/gemfield/opencv-4.4.0/install/" -DCMAKE_INSTALL_PREFIX=/gemfield/libdeepvac/install -DBUILD_STATIC=ON .. && \
+        cmake -DBUILD_STATIC=ON  -DUSE_STATIC_LIBTORCH=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch_cuda;/gemfield/opencv-4.4.0/install/" -DCMAKE_INSTALL_PREFIX=/gemfield/libdeepvac/install .. && \
         cmake --build . --config Release && make install
