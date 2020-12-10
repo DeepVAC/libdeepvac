@@ -21,7 +21,8 @@ class SyszuxOcrPse : public Deepvac {
         SyszuxOcrPse(SyszuxOcrPse&&) = default;
         SyszuxOcrPse& operator=(SyszuxOcrPse&&) = default;
         virtual ~SyszuxOcrPse() = default;
-        virtual std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> operator() (cv::Mat frame);
+    public:
+        std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> process(cv::Mat frame);
         void set(int long_size, int gap);
     private:
         void getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);

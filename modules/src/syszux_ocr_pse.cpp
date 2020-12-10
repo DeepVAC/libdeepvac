@@ -39,8 +39,10 @@ cv::Mat SyszuxOcrPse::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) {
     return img_crop;
 }
 
-std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > SyszuxOcrPse::operator() (cv::Mat img)
+std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > SyszuxOcrPse::process(cv::Mat img)
 {
+    GEMFIELD_SI;
+    //prepare input
     std::vector<cv::Mat> crop_imgs;
     cv::Mat resize_img, rgb_img;
     cv::Mat text_box = img.clone();
@@ -48,16 +50,17 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     float scale1 = long_size_ * 1.0 / std::max(img.rows, img.cols);
     cv::resize(rgb_img, resize_img, cv::Size(), scale1, scale1);
     
-    auto tensor_img = torch::from_blob(resize_img.data, {1, resize_img.rows, resize_img.cols, resize_img.channels()}, torch::kByte);
-    tensor_img = tensor_img.to(device_);
-    tensor_img = tensor_img.permute({0, 3, 1, 2});
-    tensor_img = tensor_img.toType(torch::kFloat);
-    tensor_img = tensor_img.div(255);
-    tensor_img[0][0] = tensor_img[0][0].sub_(0.485).div_(0.229);
-    tensor_img[0][1] = tensor_img[0][1].sub_(0.456).div_(0.224);
-    tensor_img[0][2] = tensor_img[0][2].sub_(0.406).div_(0.225);
-
-    auto outputs = forward(tensor_img);
+    auto input_tensor = torch::from_blob(resize_img.data, {1, resize_img.rows, resize_img.cols, resize_img.channels()}, torch::kByte);
+    input_tensor = input_tensor.to(device_);
+    input_tensor = input_tensor.permute({0, 3, 1, 2});
+    input_tensor = input_tensor.toType(torch::kFloat);
+    input_tensor = input_tensor.div(255);
+    input_tensor[0][0] = input_tensor[0][0].sub_(0.485).div_(0.229);
+    input_tensor[0][1] = input_tensor[0][1].sub_(0.456).div_(0.224);
+    input_tensor[0][2] = input_tensor[0][2].sub_(0.406).div_(0.225);
+    //prepare forward
+    auto outputs = forward(input_tensor);
+    //prepare output
     outputs = outputs.to(device_);
     outputs = outputs.squeeze();
     auto scores = torch::sigmoid(outputs.select(0, 0));

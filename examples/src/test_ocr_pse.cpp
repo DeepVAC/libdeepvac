@@ -27,7 +27,7 @@ int main(int argc, char** argv)
         std::cerr<< path << " is not a image file!" << std::endl;
         return 0;
     }
-    auto detect_out_opt = ocr_detect(img_raw);
+    auto detect_out_opt = ocr_detect.process(img_raw);
     if(!detect_out_opt){
         throw std::runtime_error("no text detected");
     }

@@ -22,7 +22,8 @@ class SyszuxFaceRetina : public Deepvac{
         SyszuxFaceRetina(SyszuxFaceRetina&&) = default;
         SyszuxFaceRetina& operator=(SyszuxFaceRetina&&) = default;
         virtual ~SyszuxFaceRetina() = default;
-        virtual std::optional<std::vector<cv::Mat>> operator() (cv::Mat frame);
+    public:
+        std::optional<std::vector<cv::Mat>> process(cv::Mat frame);
     
     private:
         gemfield_org::PriorBox prior_box_;

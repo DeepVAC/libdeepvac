@@ -3,7 +3,7 @@
  * This file is part of libdeepvac, licensed under the GPLv3 (the "License")
  * You may not use this file except in compliance with the License.
  */
-
+#include <type_traits>
 #include <filesystem>
 #include <chrono>
 #include <ctime> 
@@ -55,34 +55,29 @@ Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
     GEMFIELD_DI(msg.c_str());
 }
 
-at::Tensor Deepvac::operator() (at::Tensor& t) {
-    GEMFIELD_SI;
-    return forward(t);
-}
-
-at::Tensor Deepvac::forward(at::Tensor& t){
+template<typename T> struct dependent_false : std::false_type {};
+template<typename T = at::Tensor>
+T Deepvac::forward(at::Tensor& t){
     GEMFIELD_SI;
     torch::NoGradGuard no_grad;
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(t.to(device_));
     auto start = std::chrono::system_clock::now();
-    at::Tensor output = module_->forward(inputs).toTensor();
+    T output;
+    if constexpr (std::is_same_v<T, at::Tensor>){
+        output = module_->forward(inputs).toTensor();
+    }else if constexpr (std::is_same_v<T, std::vector<c10::IValue> >){
+        output = module_->forward(inputs).toTuple()->elements();
+    }else{
+        static_assert(dependent_false<T>::value, "[libdeepvac] invalid usage of forward.");
+    }
     std::chrono::duration<double> forward_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("forward time: %f",  forward_duration.count() );
     GEMFIELD_DI(msg.c_str());
     return output;
 }
-std::vector<c10::IValue> Deepvac::forwardTuple(at::Tensor& t){
-    GEMFIELD_SI;
-    torch::NoGradGuard no_grad;
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(t.to(device_));
-    auto start = std::chrono::system_clock::now();
-    std::vector<c10::IValue> rc = module_->forward(inputs).toTuple()->elements();
-    std::chrono::duration<double> forward_duration = std::chrono::system_clock::now() - start;
-    std::string msg = gemfield_org::format("forwardTuple time: %f",  forward_duration.count() );
-    GEMFIELD_DI(msg.c_str());
-    return rc;
-}
+
+template at::Tensor Deepvac::forward<at::Tensor>(at::Tensor& t);
+template std::vector<c10::IValue> Deepvac::forward<std::vector<c10::IValue>>(at::Tensor& t);
 
 } //namespace deepvac

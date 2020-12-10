@@ -17,8 +17,9 @@ namespace deepvac{
 SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac(path, device),
     prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
-std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::operator()(cv::Mat frame){
+std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::process(cv::Mat frame){
     GEMFIELD_SI;
+    //prepare input
     int h = frame.rows;
     int w = frame.cols;
     int c = frame.channels();
@@ -41,14 +42,13 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::operator()(cv::Mat frame){
     input_tensor[0][0] = input_tensor[0][0].sub_(104);
     input_tensor[0][1] = input_tensor[0][1].sub_(117);
     input_tensor[0][2] = input_tensor[0][2].sub_(123);
-
-    
-    auto output = forwardTuple(input_tensor);
+    //forward
+    auto output = forward<std::vector<c10::IValue>>(input_tensor);
     //Nx4    //Nx2    //Nx10
     auto loc = output[0].toTensor();
     auto forward_conf = output[1].toTensor();
     auto landms = output[2].toTensor();
-    //gemfield
+    //gemfield, prepare output
     torch::Tensor prior_output = prior_box_.forward({frame.rows, frame.cols});
     prior_output = prior_output.to(device_);
 

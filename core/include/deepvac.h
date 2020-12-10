@@ -26,14 +26,17 @@ class SYSZUX_EXPORT Deepvac{
         explicit Deepvac(const char* model_path, std::string device = "cuda:0");
         explicit Deepvac(std::string model_path, std::string device = "cuda:0"):Deepvac(model_path.c_str(), device){}
         explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device = "cuda:0");
-        virtual at::Tensor operator() (at::Tensor& t);
+    public:
         std::string getDevice(){return device_;}
-        std::vector<c10::IValue> forwardTuple(at::Tensor& t);
-        at::Tensor forward(at::Tensor& t);
+    public:
+        template<typename T = at::Tensor>
+        T forward(at::Tensor& t);
 
     protected:
         std::string device_;
         std::unique_ptr<torch::jit::script::Module> module_;
+        std::optional<at::Tensor> input_opt_;
+        at::Tensor input_tensor_;
 };
 
 }// namespace deepvac
