@@ -9,14 +9,13 @@
 
 using namespace deepvac;
 int main(int argc, const char* argv[]) {
-    if (argc != 4) {
-        GEMFIELD_E("usage: deepvac <device> <model_path> <img_path>");
+    if (argc != 3) {
+        GEMFIELD_E("usage: deepvac <device> <img_path>");
         return -1;
     }
 
     std::string device = argv[1];
-    std::string seg_esp_deepvac = argv[2];
-    std::string img_path = argv[3];
+    std::string img_path = argv[2];
     std::vector<int> image_size = {512, 256};
     SyszuxSegEsp seg(seg_esp_deepvac, device);
     seg.set(image_size);
