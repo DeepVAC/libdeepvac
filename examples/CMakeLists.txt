@@ -21,7 +21,7 @@ endif()
 set(examples_dest "bin")
 
 file( GLOB EXAMPLES_LIST ${CMAKE_SOURCE_DIR}/examples/*/test_*.cpp )
-set(EXAMPLES_LIST_MIN ${CMAKE_CURRENT_SOURCE_DIR}/src/test_ocr_pse.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/test_face_retina.cpp)
+set(EXAMPLES_LIST_MIN ${CMAKE_CURRENT_SOURCE_DIR}/src/test_ocr_pse.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/test_face_retina.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/test_cls_mobile.cpp)
 #internal test
 add_syszux_flags(face_retina_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_face_retina.cpp)
 add_syszux_flags(ocr_pse_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_ocr_pse.cpp)

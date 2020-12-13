@@ -18,13 +18,6 @@ class SyszuxClsMobile : public Deepvac {
         SyszuxClsMobile& operator=(SyszuxClsMobile&&) = default;
         virtual ~SyszuxClsMobile() = default;
     public:
-        std::optional<std::vector<cv::Mat>> process (std::vector<cv::Mat> crop_imgs);
-        void set(float confidence, float threshold);
-    private:
-        float getScore(std::vector<float> confidences);
-        std::vector<cv::Mat> getRotatedImgs(std::vector<cv::Mat> crop_imgs, std::vector<float> confidences);
-    private:
-        float confidence_;
-        float threshold_;
+        std::optional<std::pair<int, float>> process (cv::Mat frame);
 };
 } //namespace deepvac
