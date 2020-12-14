@@ -12,5 +12,6 @@
 namespace gemfield_org{
 std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb=false);
 std::optional<at::Tensor> cvMat2Tensor(cv::Mat& frame, bool is_normalize=true);
+std::optional<at::Tensor> cvMat2Tensor(std::vector<cv::Mat>& frames, bool is_normalize=true);
 std::optional<at::Tensor> img2Tensor(std::string& img_path, bool is_rgb=false, bool is_normalize=true);
 }
