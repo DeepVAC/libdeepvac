@@ -19,6 +19,8 @@ libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
 |-----|------|------|
 |SyszuxFaceRetina| RetinaNet | 人脸检测|
 |SyszuxOcrPse | PSENet | 文字检测 |
+|SyszuxSegEsp | ESPNetV2 | 语义分割 |
+|SyszuxClsMobile | MobileNetV3 | 分类 |
 
 ### helper函数实现
 |类名/函数名 | 作用 |
