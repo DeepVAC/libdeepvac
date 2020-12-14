@@ -16,7 +16,6 @@ int main(int argc, char** argv)
 
     std::string device = argv[1];
     std::string img_path = argv[2];
-
     SyszuxClsMobile cls(cls_mobile_deepvac, device);
 
     cv::Mat img_raw = cv::imread(img_path);

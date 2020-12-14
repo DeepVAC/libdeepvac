@@ -11,13 +11,17 @@ SyszuxClsMobile::SyszuxClsMobile(std::string path, std::string device):Deepvac(p
 
 std::optional<std::pair<int, float>> SyszuxClsMobile::process(cv::Mat frame){
     cv::Mat input_img = frame.clone();
-    input_img.convertTo(input_img, CV_32F, 1 / 127.5, -1);
-    auto tensor_img = torch::from_blob(input_img.data, {1, input_img.rows, input_img.cols, input_img.channels()});
-    tensor_img = tensor_img.to(device_);
-    tensor_img = tensor_img.toType(torch::kFloat);
-    tensor_img = tensor_img.permute({0, 3, 1, 2});
+    input_img.convertTo(input_img, CV_32FC3, 1 / 127.5, -1);
+    
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(input_img, false);
 
-    auto pred = forward(tensor_img);
+    if(!input_tensor_opt){
+        return std::nullopt;
+    }
+    auto input_tensor = input_tensor_opt.value();
+    input_tensor = input_tensor.to(device_);
+
+    auto pred = forward(input_tensor);
     auto softmaxs = pred.softmax(1);
     std::tuple<torch::Tensor, torch::Tensor> max_res = torch::max(softmaxs, 1);
     auto max_probability = std::get<0>(max_res).item<float>();

@@ -7,6 +7,7 @@
 #pragma once
 #include "opencv2/opencv.hpp"
 #include "deepvac.h"
+#include "syszux_img2tensor.h"
 
 namespace deepvac {
 class SyszuxClsMobile : public Deepvac {
