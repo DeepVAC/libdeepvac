@@ -140,6 +140,6 @@ std::optional<at::Tensor> img2Tensor(std::string& img_path, bool is_rgb, NORMALI
         return std::nullopt;
     }
     cv::Mat frame = frame_opt.value();
-    return cvMat2Tensor(frame, normalize, mean_std);
+    return cvMat2Tensor(std::move(frame), normalize, mean_std);
 }
 }//namespace

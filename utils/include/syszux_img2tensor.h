@@ -23,6 +23,6 @@ enum MEAN_STD_TYPE {
 std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb=false);
 std::optional<at::Tensor> cvMat2Tensor(cv::Mat& frame, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
 std::optional<at::Tensor> cvMat2Tensor(std::vector<cv::Mat>& frames, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
-std::optional<at::Tensor> cvMat2Tensor(cv::Mat&& tmp_frame, NORMALIZE_TYPE normalize, MEAN_STD_TYPE mean_std);
+std::optional<at::Tensor> cvMat2Tensor(cv::Mat&& tmp_frame, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
 std::optional<at::Tensor> img2Tensor(std::string& img_path, bool is_rgb=false, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
 }
