@@ -27,7 +27,6 @@ std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb){
 
 std::optional<at::Tensor> cvMat2Tensor(cv::Mat&& tmp_frame, NORMALIZE_TYPE normalize, MEAN_STD_TYPE mean_std){
     cv::Mat frame = tmp_frame.clone();
-    std::cout << "tmp:  " << std::endl;
     auto t_opt = cvMat2Tensor(frame, normalize, mean_std);
     if (!t_opt) {
         return std::nullopt;
