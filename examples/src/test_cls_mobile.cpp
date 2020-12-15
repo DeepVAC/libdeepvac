@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 
     std::string device = argv[1];
     std::string img_path = argv[2];
-    SyszuxClsMobile cls("/gemfield/hostpv/cls/sota_model/mv3_l0.5_2.9M_acc1.0_epoch19.pt", device);
+    SyszuxClsMobile cls(cls_mobile_deepvac, device);
 
     cv::Mat img_raw = cv::imread(img_path);
     if(img_raw.data == nullptr){
