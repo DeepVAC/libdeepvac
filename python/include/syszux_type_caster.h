@@ -127,16 +127,20 @@ struct type_caster<cv::Mat> {
     // (for ``return_value_policy::reference_internal``) and are generally ignored by implicit casters. 
     static handle cast(const cv::Mat &m, return_value_policy, handle defval) {
         std::string format = format_descriptor<unsigned char>::format();
-        int dim = m.channels();
         size_t elemsize = sizeof(unsigned char);
-
+        int mat_w = m.cols;
+        int mat_h = m.rows;
+        int mat_c = m.channels();
         auto type = m.type();
         auto depth = m.depth();
+        int dim = (depth == type)? 2 : 3;
+
         //enum{CV_8U=0,CV_8S=1,CV_16U=2,CV_16S=3,CV_32S=4,CV_32F=5,CV_64F=6,CV_16F=7}
         switch(depth) {
             case CV_8U:
                 format = format_descriptor<unsigned char>::format();
                 elemsize = sizeof(unsigned char);
+                break;
             case CV_32S:
                 format = format_descriptor<int>::format();
                 elemsize = sizeof(int);
@@ -149,15 +153,14 @@ struct type_caster<cv::Mat> {
                 throw std::runtime_error("Unsupported type");
         }
         
-
         std::vector<size_t> bufferdim;
         std::vector<size_t> strides;
         if (dim == 2) {
-            bufferdim = {(size_t) m.rows, (size_t) m.cols};
-            strides = {elemsize * (size_t) m.cols, elemsize};
+            bufferdim = {(size_t) mat_h, (size_t) mat_w};
+            strides = {elemsize * (size_t) mat_w, elemsize};
         } else if (dim == 3) {
-            bufferdim = {(size_t) m.rows, (size_t) m.cols, (size_t) 3};
-            strides = {(size_t) elemsize * m.cols * 3, (size_t) elemsize * 3, (size_t) elemsize};
+            bufferdim = {(size_t) mat_h, (size_t) mat_w, (size_t) 3};
+            strides = {(size_t) elemsize * mat_w * 3, (size_t) elemsize * 3, (size_t) elemsize};
         } else{
             throw std::runtime_error("Unsupported dimension.");
         }

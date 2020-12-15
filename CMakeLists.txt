@@ -118,7 +118,8 @@ if(USE_STATIC_LIBTORCH)
         find_library(c10_cuda_LIBRARY c10_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
     endif()
 
-    SET (TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${torch_LIBRARY} ${torch_cpu_LIBRARY} ${torch_cuda_LIBRARY} ${c10_cuda_LIBRARY} -Wl,--no-whole-archive")
+    SET (TORCH_CUDA_STATIC_LIBRARIES "-Wl,--whole-archive ${torch_LIBRARY} ${torch_cpu_LIBRARY} ${torch_cuda_LIBRARY} ${c10_cuda_LIBRARY} -Wl,--no-whole-archive")
+    SET (TORCH_CPU_STATIC_LIBRARIES "-Wl,--whole-archive ${torch_LIBRARY} ${torch_cpu_LIBRARY} -Wl,--no-whole-archive")
 
     append_lib_if_found(c10)
     append_lib_if_found(Caffe2_perfkernels_avx512 Caffe2_perfkernels_avx2 Caffe2_perfkernels_avx)
@@ -136,11 +137,15 @@ if(USE_STATIC_LIBTORCH)
         list(APPEND TORCH_STATIC_LIBRARIES "-lm")
         list(APPEND TORCH_STATIC_LIBRARIES "-ldl")
     endif()
-    message(STATUS "found libtorch static library: ${TORCH_STATIC_LIBRARIES}")
+    list(APPEND TORCH_CPU_STATIC_LIBRARIES ${TORCH_STATIC_LIBRARIES})
+    message(STATUS "found libtorch cpu static library: ${TORCH_CPU_STATIC_LIBRARIES}")
+
     if(USE_CUDA)
+        list(PREPEND TORCH_STATIC_LIBRARIES ${TORCH_CUDA_STATIC_LIBRARIES})
         find_package(CUDA REQUIRED)
         message(STATUS "will build with CUDA: ${CUDA_TOOLKIT_ROOT_DIR}")
         append_lib_if_found(nccl_static)
+        message(STATUS "found libtorch cuda static library: ${TORCH_STATIC_LIBRARIES}")
         find_library(CUDNN_LIBRARY cudnn
             HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
             PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
