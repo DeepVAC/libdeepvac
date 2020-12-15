@@ -91,7 +91,7 @@ std::optional<at::Tensor> cvMat2Tensor(std::vector<cv::Mat>& frames, NORMALIZE_T
         if (frame.rows != h or frame.cols != w){
             GEMFIELD_E("illegal img: rows or cols are not consistent.");
             return std::nullopt;
-	}
+        }
     }
     cv::Mat batch_image;
     cv::vconcat(frames, batch_image);
