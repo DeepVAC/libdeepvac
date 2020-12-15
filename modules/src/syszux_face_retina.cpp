@@ -31,17 +31,12 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::process(cv::Mat frame){
         w = frame.cols;
     }
 
-    cv::Mat frame_ori = frame.clone(); 
-    frame.convertTo(frame, CV_32F);
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(frame, false);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NO_NORMALIZE, gemfield_org::MEAN_STD_FROM_FACE);
 
     if(!input_tensor_opt){
         return std::nullopt;
     }
     auto input_tensor = input_tensor_opt.value();
-    input_tensor[0][0] = input_tensor[0][0].sub_(104);
-    input_tensor[0][1] = input_tensor[0][1].sub_(117);
-    input_tensor[0][2] = input_tensor[0][2].sub_(123);
     //forward
     auto output = forward<std::vector<c10::IValue>>(input_tensor);
     //Nx4    //Nx2    //Nx10
@@ -119,7 +114,7 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::process(cv::Mat frame){
     
     for(int i=0; i<landms_mat.rows; i++){
         auto landmark = landms_mat.row(i);
-        cv::Mat dst_img = align_face_(frame_ori, landmark);
+        cv::Mat dst_img = align_face_(frame, landmark);
         dst_img.convertTo(dst_img, CV_32FC3);
         detect_vec.push_back(dst_img);
     }

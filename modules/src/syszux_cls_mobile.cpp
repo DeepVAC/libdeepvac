@@ -10,16 +10,12 @@ SyszuxClsMobile::SyszuxClsMobile(std::string path, std::string device):Deepvac(p
 }
 
 std::optional<std::pair<int, float>> SyszuxClsMobile::process(cv::Mat frame){
-    cv::Mat input_img = frame.clone();
-    input_img.convertTo(input_img, CV_32FC3, 1 / 127.5, -1);
-    
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(input_img, false);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NORMALIZE_1_1, gemfield_org::NO_MEAN_STD);
 
     if(!input_tensor_opt){
         return std::nullopt;
     }
     auto input_tensor = input_tensor_opt.value();
-    input_tensor = input_tensor.to(device_);
 
     auto pred = forward(input_tensor);
     auto softmaxs = pred.softmax(1);
@@ -32,15 +28,12 @@ std::optional<std::pair<int, float>> SyszuxClsMobile::process(cv::Mat frame){
 }
 
 std::optional<std::vector<std::pair<int, float>>> SyszuxClsMobile::process(std::vector<cv::Mat> frames){
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(frames, false);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(frames, gemfield_org::NORMALIZE_1_1, gemfield_org::NO_MEAN_STD);
 
     if(!input_tensor_opt){
         return std::nullopt;
     }
     auto input_tensor = input_tensor_opt.value();
-    input_tensor = input_tensor.toType(torch::kFloat);
-    input_tensor = input_tensor.to(device_);
-    input_tensor = input_tensor.div_(127.5).sub_(1);
 
     auto pred = forward(input_tensor);
     auto softmaxs = pred.softmax(1);
@@ -50,7 +43,7 @@ std::optional<std::vector<std::pair<int, float>>> SyszuxClsMobile::process(std::
         auto max_probability = std::get<0>(max_res).item<float>();
         auto index = std::get<1>(max_res).item<int>();
         std::pair result(index, max_probability);
-	results.push_back(result);
+        results.push_back(result);
     }
     return results;
 }
