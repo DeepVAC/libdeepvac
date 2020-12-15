@@ -50,14 +50,13 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     float scale1 = long_size_ * 1.0 / std::max(img.rows, img.cols);
     cv::resize(rgb_img, resize_img, cv::Size(), scale1, scale1);
     
-    auto input_tensor = torch::from_blob(resize_img.data, {1, resize_img.rows, resize_img.cols, resize_img.channels()}, torch::kByte);
-    input_tensor = input_tensor.to(device_);
-    input_tensor = input_tensor.permute({0, 3, 1, 2});
-    input_tensor = input_tensor.toType(torch::kFloat);
-    input_tensor = input_tensor.div(255);
-    input_tensor[0][0] = input_tensor[0][0].sub_(0.485).div_(0.229);
-    input_tensor[0][1] = input_tensor[0][1].sub_(0.456).div_(0.224);
-    input_tensor[0][2] = input_tensor[0][2].sub_(0.406).div_(0.225);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET);
+
+    if(!input_tensor_opt){
+        return std::nullopt;
+    }
+    auto input_tensor = input_tensor_opt.value();
+
     //prepare forward
     auto outputs = forward(input_tensor);
     //prepare output

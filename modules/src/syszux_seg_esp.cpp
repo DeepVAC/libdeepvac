@@ -22,15 +22,12 @@ std::optional<cv::Mat> SyszuxSegEsp::process(cv::Mat frame){
     cv::cvtColor(frame, resize_img, cv::COLOR_BGR2RGB);
     cv::resize(resize_img, resize_img, cv::Size(image_size_[0], image_size_[1]), cv::INTER_LINEAR);
 
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, true);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET);
 
     if(!input_tensor_opt){
         return std::nullopt;
     }
     auto input_tensor = input_tensor_opt.value();
-    input_tensor[0][0] = input_tensor[0][0].sub_(0.485).div_(0.229);
-    input_tensor[0][1] = input_tensor[0][1].sub_(0.456).div_(0.224);
-    input_tensor[0][2] = input_tensor[0][2].sub_(0.406).div_(0.225);
     //forward
     auto output = forward(input_tensor);
     

@@ -9,6 +9,7 @@
 #include <deepvac.h>
 #include <torch/script.h>
 #include "opencv2/opencv.hpp"
+#include "syszux_img2tensor.h"
 #include <queue>
 #include <algorithm>
 

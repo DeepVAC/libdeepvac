@@ -20,5 +20,6 @@ class SyszuxClsMobile : public Deepvac {
         virtual ~SyszuxClsMobile() = default;
     public:
         std::optional<std::pair<int, float>> process (cv::Mat frame);
+        std::optional<std::vector<std::pair<int, float>>> process(std::vector<cv::Mat> frame);
 };
 } //namespace deepvac
