@@ -108,4 +108,5 @@ cmake --build . --config Release
 ```
 
 # 演示
-稍后我们会提供一个基于libdeepvac的人脸检测的项目。
+[SYSZUX-FACE](https://github.com/CivilNet/SYSZUX-FACE)基于本项目实现了人脸检测功能。
+
