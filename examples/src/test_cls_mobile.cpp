@@ -5,6 +5,7 @@
  */
 #include "gemfield.h"
 #include "syszux_cls_mobile.h"
+#include "syszux_img2tensor.h"
 
 using namespace deepvac;
 int main(int argc, char** argv)
@@ -18,12 +19,14 @@ int main(int argc, char** argv)
     std::string img_path = argv[2];
     SyszuxClsMobile cls(cls_mobile_deepvac, device);
 
-    cv::Mat img_raw = cv::imread(img_path);
-    if(img_raw.data == nullptr){
-        GEMFIELD_E(path + " is not a image file! Please input a image path...");
-        return -1;
+    auto mat_opt = gemfield_org::img2CvMat(img_path);
+    if(!mat_opt){
+        throw std::runtime_error("illegal image detected");
+        return 1;
     }
-    auto cls_out_opt = cls.process(img_raw);
+    auto mat_out = mat_opt.value();
+
+    auto cls_out_opt = cls.process(mat_out);
     if(!cls_out_opt) {
         return 0;
     }

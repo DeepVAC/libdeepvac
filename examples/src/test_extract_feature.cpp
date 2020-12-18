@@ -12,6 +12,7 @@
 #include "deepvac_loader.h"
 #include "test_extract_feature.h"
 #include <torch/serialize.h>
+#include "syszux_img2tensor.h"
 
 namespace deepvac{
 
@@ -32,7 +33,7 @@ void FeatureEmbFromDir::dumpEmb(std::string output_feature_file){
             continue;
         }
         {GEMFIELD_DI2("input file: ", f.c_str());}
-        at::Tensor emb = deepvac_(*m);
+        at::Tensor emb = deepvac_.forward(*m);
         emb_vec_.push_back(emb);
 
         std::string base_dir = std::filesystem::path(f).parent_path();
@@ -75,7 +76,7 @@ void FeatureEmbFromDir::operator()(std::string input_feature_file){
         }
 
         {GEMFIELD_DI2("input file: ", f.c_str());}
-        at::Tensor emb = deepvac_(*m);
+        at::Tensor emb = deepvac_.forward(*m);
         at::Tensor distance = torch::norm(feature_ - emb, 2,  1);
         int min_index = torch::argmin(distance).item<int64_t>();
         GEMFIELD_DI2("predict: ", name_vec_.at(min_index).c_str());

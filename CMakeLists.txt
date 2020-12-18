@@ -223,6 +223,9 @@ if(BUILD_STATIC)
 else()
     message(STATUS "will build libdeepvac shared library")
     add_library(deepvac SHARED ${SRC_LIST})
+    if(USE_STATIC_LIBTORCH)
+        target_link_libraries(deepvac PRIVATE ${TORCH_STATIC_LIBRARIES} ${CUDA_LIBRARIES_ALL} ${OpenCV_LIBS})
+    endif()
 endif()
 
 target_include_directories(deepvac PUBLIC 

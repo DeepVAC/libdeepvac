@@ -7,7 +7,7 @@
 #include "gemfield.h"
 
 namespace gemfield_org{
-std::optional<cv::Mat> img2CvMat(std::string& img_path, bool is_rgb){
+std::optional<cv::Mat> img2CvMat(std::string img_path, bool is_rgb){
     cv::Mat frame;
     try{
         frame = cv::imread(img_path);
@@ -134,7 +134,7 @@ std::optional<at::Tensor> cvMat2Tensor(std::vector<cv::Mat>& frames, NORMALIZE_T
     return input_tensor.clone();
 }
 
-std::optional<at::Tensor> img2Tensor(std::string& img_path, bool is_rgb, NORMALIZE_TYPE normalize, MEAN_STD_TYPE mean_std){
+std::optional<at::Tensor> img2Tensor(std::string img_path, bool is_rgb, NORMALIZE_TYPE normalize, MEAN_STD_TYPE mean_std){
     auto frame_opt = img2CvMat(img_path, is_rgb);
     if(!frame_opt){
         return std::nullopt;

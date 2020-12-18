@@ -20,14 +20,14 @@ int main(int argc, char** argv)
     int crop_gap = 5;
     SyszuxOcrPse ocr_detect(ocr_pse_deepvac, device);
     ocr_detect.set(long_size, crop_gap);
-   
-    cv::Mat img_raw = cv::imread(path);
-    if(img_raw.data == nullptr)
-    {
-        std::cerr<< path << " is not a image file!" << std::endl;
-        return 0;
+
+    auto mat_opt = gemfield_org::img2CvMat(path);
+    if(!mat_opt){
+        throw std::runtime_error("illegal image detected");
+        return 1;
     }
-    auto detect_out_opt = ocr_detect.process(img_raw);
+    auto mat_out = mat_opt.value();
+    auto detect_out_opt = ocr_detect.process(mat_out);
     if(!detect_out_opt){
         throw std::runtime_error("no text detected");
     }

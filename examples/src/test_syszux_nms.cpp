@@ -5,6 +5,7 @@
  */
 
 #include "syszux_nms.h"
+#include "syszux_img2tensor.h"
 #include <torch/script.h>
 
 int main(int argc, const char* argv[]) {

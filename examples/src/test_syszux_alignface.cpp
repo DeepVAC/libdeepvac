@@ -6,6 +6,7 @@
 
 #include "gemfield.h"
 #include "syszux_align_face.h"
+#include "syszux_img2tensor.h"
 #include <vector>
 
 int main(int argc, char** argv)
@@ -16,7 +17,12 @@ int main(int argc, char** argv)
     }
 
     std::string img_path = argv[1];
-    cv::Mat img = cv::imread(img_path);
+    auto mat_opt = gemfield_org::img2CvMat(img_path);
+    if(!mat_opt){
+        throw std::runtime_error("illegal image detected");
+        return 1;
+    }
+    auto mat_out = mat_opt.value();
 
     std::vector<float> facial_5pts = {632.30804, 177.63857, 687.6927, 185.6925, 649.9065,
                                     213.16966, 632.7789, 239.9633, 673.7113, 246.61923};
@@ -25,7 +31,7 @@ int main(int argc, char** argv)
     facial_5pts_mat = facial_5pts_mat.t();
 
     gemfield_org::AlignFace align_face;
-    cv::Mat dst_img = align_face(img, facial_5pts_mat);
+    cv::Mat dst_img = align_face(mat_out, facial_5pts_mat);
     std::cout << dst_img.rows << std::endl;
     cv::imwrite("./test_res.jpg", dst_img);
 }
