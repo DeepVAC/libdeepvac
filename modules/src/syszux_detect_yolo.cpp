@@ -102,7 +102,7 @@ std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo:
         float x2 = (p[2].item<float>() - (float)left)/r;  // x padding
         float y2 = (p[3].item<float>() - (float)top)/r;  // y padding
 
-	x1 = std::max(0.0f, std::min(x1, ori_w));
+        x1 = std::max(0.0f, std::min(x1, ori_w));
         y1 = std::max(0.0f, std::min(y1, ori_h));
         x2 = std::max(0.0f, std::min(x2, ori_w));
         y2 = std::max(0.0f, std::min(y2, ori_h));
