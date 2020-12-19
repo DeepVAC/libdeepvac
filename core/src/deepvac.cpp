@@ -31,6 +31,7 @@ Deepvac::Deepvac(const char* model_path, std::string device){
     std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
     GEMFIELD_DI(msg.c_str());
+    module_->eval();
 }
 
 Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
@@ -53,6 +54,7 @@ Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
     std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
     GEMFIELD_DI(msg.c_str());
+    module_->eval();
 }
 
 template<typename T> struct dependent_false : std::false_type {};
