@@ -51,7 +51,7 @@ torch::Tensor SyszuxDetectYolo::postProcess(torch::Tensor& preds) {
 
 }
 
-std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo::process(cv::Mat& frame){
+std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo::process(cv::Mat frame){
     cv::Mat input_img = frame.clone();
     
     int h = input_img.rows;
