@@ -8,7 +8,9 @@
 
 namespace deepvac{
 
-SyszuxClsResnet::SyszuxClsResnet(std::string path, std::string device):Deepvac(path, device) {}
+SyszuxClsResnet::SyszuxClsResnet(std::string path, std::string device):Deepvac(path, device) {
+    set({224, 224});
+}
 
 void SyszuxClsResnet::set(std::vector<int> input_size) {
     input_size_ = input_size;
