@@ -27,6 +27,7 @@ add_syszux_flags(face_retina_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_face_r
 add_syszux_flags(ocr_pse_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_ocr_pse.cpp)
 add_syszux_flags(seg_esp_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_seg_esp.cpp)
 add_syszux_flags(cls_mobile_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_cls_mobile.cpp)
+add_syszux_flags(detect_yolo_deepvac@${CMAKE_CURRENT_SOURCE_DIR}/src/test_detect_yolo.cpp)
 
 foreach(_src ${FLAGS_FILE_LIST})
     string(REGEX MATCH "^[^@]+" def_name ${_src})
