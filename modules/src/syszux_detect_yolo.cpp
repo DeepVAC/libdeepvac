@@ -5,8 +5,8 @@
  */
 #include "syszux_detect_yolo.h"
 namespace deepvac{
-SyszuxDetectYolo::SyszuxDetectYolo(std::string path, std::string device):Deepvac(path, device){
-}
+SyszuxDetectYolo::SyszuxDetectYolo(std::string path, std::string device):Deepvac(path, device){}
+SyszuxDetectYolo::SyszuxDetectYolo(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device){}
 
 void SyszuxDetectYolo::set(int input_size, float iou_thresh, float score_thresh) {
     input_size_ = input_size;

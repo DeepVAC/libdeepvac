@@ -14,6 +14,7 @@ namespace deepvac {
 class SyszuxDetectYolo : public Deepvac {
     public:
         SyszuxDetectYolo(std::string path, std::string device="cpu");
+        SyszuxDetectYolo(std::vector<unsigned char>&& buffer, std::string device = "cpu");
         SyszuxDetectYolo(const SyszuxDetectYolo&) = delete;
         SyszuxDetectYolo& operator=(const SyszuxDetectYolo&) = delete;
         SyszuxDetectYolo(SyszuxDetectYolo&&) = default;

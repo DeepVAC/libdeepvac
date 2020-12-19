@@ -13,6 +13,7 @@ namespace deepvac{
 class SyszuxClsResnet : public Deepvac{
     public:
         SyszuxClsResnet(std::string path, std::string device = "cpu");
+        SyszuxClsResnet(std::vector<unsigned char>&& buffer, std::string device = "cpu");
         SyszuxClsResnet(const SyszuxClsResnet&) = delete;
         SyszuxClsResnet& operator=(const SyszuxClsResnet&) = delete;
         SyszuxClsResnet(SyszuxClsResnet&&) = default;
