@@ -20,9 +20,9 @@ int main(int argc, char** argv)
     int input_size = 512;
     float iou_thresh = 0.45;
     float score_thresh = 0.25;
-    std::vector<std::string> idx_to_cls = {"Female-Breast", "Female-Genitals", "Male-Genitals", "Buttocks"};
-    SyszuxDetectYolo detect("/gemfield/hostpv/wangyuhang/yolov5/weights/last_1.torchscript.pt", device);
-    detect.set(input_size, iou_thresh, score_thresh, idx_to_cls);
+    std::vector<std::string> idx_to_cls = {"1", "2", "3", "4"};
+    SyszuxDetectYolo detect(detect_yolo_deepvac, device);
+    detect.set(input_size, iou_thresh, score_thresh);
 
     cv::Mat img_raw = cv::imread(img_path);
     if(img_raw.data == nullptr){
@@ -34,16 +34,18 @@ int main(int argc, char** argv)
         return 0;
     }
     auto detect_out = detect_out_opt.value();
-    auto classes = detect_out.first;
-    auto scores = detect_out.second;
+    
+    std::cout << "size: " << detect_out.size() << std::endl;
+    if (detect_out.size()==0) {
+        std::cout << "detect none."  << std::endl;
+        return 0;
+    }
 
-    for (int j=0; j<classes.size(); j++) {
-        if (classes[j]=="None") {
-            std::cout << "detect none."  << std::endl;
-            break;
-        }
-        std::cout << "class: " << classes[j] << std::endl;
-        std::cout << "score: " << scores[j] << std::endl;
+    for (int j=0; j<detect_out.size(); j++) {
+        int idx = detect_out[j].first;
+        std::vector<float> bbox_and_score = detect_out[j].second;
+        std::cout << "class: " << idx_to_cls[idx] << std::endl;
+        std::cout << "bbox_and_score: " << bbox_and_score << std::endl;
     }
     return 0;
 }

@@ -4,17 +4,14 @@
  * You may not use this file except in compliance with the License.
  */
 #include "syszux_detect_yolo.h"
-#include <time.h>
-#include <sys/time.h>
 namespace deepvac{
 SyszuxDetectYolo::SyszuxDetectYolo(std::string path, std::string device):Deepvac(path, device){
 }
 
-void SyszuxDetectYolo::set(int input_size, float iou_thresh, float score_thresh, std::vector<std::string> idx_to_cls) {
+void SyszuxDetectYolo::set(int input_size, float iou_thresh, float score_thresh) {
     input_size_ = input_size;
     iou_thresh_ = iou_thresh;
     score_thresh_ = score_thresh;
-    idx_to_cls_ = idx_to_cls;
 }
 
 torch::Tensor SyszuxDetectYolo::postProcess(torch::Tensor& preds) {
@@ -54,7 +51,7 @@ torch::Tensor SyszuxDetectYolo::postProcess(torch::Tensor& preds) {
 
 }
 
-std::optional<std::pair<std::vector<std::string>, torch::Tensor>> SyszuxDetectYolo::process(cv::Mat& frame){
+std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo::process(cv::Mat& frame){
     cv::Mat input_img = frame.clone();
     
     int h = input_img.rows;
@@ -89,23 +86,30 @@ std::optional<std::pair<std::vector<std::string>, torch::Tensor>> SyszuxDetectYo
     torch::Tensor preds = output[0].toTensor();
     
     auto pred = postProcess(preds);
-    std::vector<std::string> classes;
-    torch::Tensor scores;
+    
+    std::vector<std::pair<int, std::vector<float>>> results;
     
     if (pred.sizes()[0] == 0) {
-        classes.push_back("None");
-        scores = torch::zeros({1});
-        std::pair result(classes, scores);
-        return result;
+        return results;
     }
-    
-    scores = pred.select(1, pred.sizes()[1]-2);
-    auto classes_t = pred.select(1, pred.sizes()[1]-1);
- 
+
+    float ori_w = float(frame.cols);
+    float ori_h = float(frame.rows);
     for (int i=0; i<pred.sizes()[0]; i++) {
-        classes.push_back(idx_to_cls_[classes_t[i].item().toLong()]);
+        torch::Tensor p = pred[i];
+        float x1 = (p[0].item<float>() - (float)left)/r;  // x padding
+        float y1 = (p[1].item<float>() - (float)top)/r;  // y padding
+        float x2 = (p[2].item<float>() - (float)left)/r;  // x padding
+        float y2 = (p[3].item<float>() - (float)top)/r;  // y padding
+
+	x1 = std::max(0.0f, std::min(x1, ori_w));
+        y1 = std::max(0.0f, std::min(y1, ori_h));
+        x2 = std::max(0.0f, std::min(x2, ori_w));
+        y2 = std::max(0.0f, std::min(y2, ori_h));
+        std::vector<float> bbox_and_score = {x1, y1, x2, y2, p[4].item<float>()};
+        std::pair result(int(p[5].item<float>()), bbox_and_score);
+        results.push_back(result);
     }
-    std::pair result(classes, scores);
-    return result;
+    return results;
 }
 }//namespace

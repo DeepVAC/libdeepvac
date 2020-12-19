@@ -20,8 +20,8 @@ class SyszuxDetectYolo : public Deepvac {
         SyszuxDetectYolo& operator=(SyszuxDetectYolo&&) = default;
         virtual ~SyszuxDetectYolo() = default;
     public:
-        void set(int input_size, float iou_thresh, float score_thresh, std::vector<std::string> idx_to_cls);
-        std::optional<std::pair<std::vector<std::string>, torch::Tensor>> process (cv::Mat& frame);
+        void set(int input_size, float iou_thresh, float score_thresh);
+        std::optional<std::vector<std::pair<int, std::vector<float>>>> process (cv::Mat& frame);
     private:
         torch::Tensor postProcess(torch::Tensor& preds);
     private:

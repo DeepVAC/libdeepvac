@@ -21,6 +21,7 @@ libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
 |SyszuxOcrPse | PSENet | 文字检测 |
 |SyszuxSegEsp | ESPNetV2 | 语义分割 |
 |SyszuxClsMobile | MobileNetV3 | 分类 |
+|SyszuxDetectYolo | YOLOV5 | 目标检测 |
 
 ### helper函数实现
 |类名/函数名 | 作用 |
