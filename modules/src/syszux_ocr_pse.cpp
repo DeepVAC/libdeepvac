@@ -64,7 +64,10 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     outputs = torch::sign(outputs.sub_(1.0));
     outputs = outputs.add_(1).div_(2);
     auto text = outputs.select(0, 0);
-    auto kernels = outputs.slice(0, 0, 3) * text;
+
+    // kernel_num can be 3 or 7
+    int kernel_num = 7;
+    auto kernels = outputs.slice(0, 0, kernel_num) * text;
     kernels = kernels.toType(torch::kU8);
     
     float min_area = 10.0;
