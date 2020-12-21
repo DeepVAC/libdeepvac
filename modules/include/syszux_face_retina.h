@@ -17,8 +17,9 @@ namespace deepvac{
 class SyszuxFaceRetina : public Deepvac{
     public:
         SyszuxFaceRetina(std::string path, std::string device = "cpu");
-        SyszuxFaceRetina(const SyszuxFaceRetina&) = delete;
-        SyszuxFaceRetina& operator=(const SyszuxFaceRetina&) = delete;
+        SyszuxFaceRetina(std::vector<unsigned char>&& buffer, std::string device = "cpu");
+        SyszuxFaceRetina(const SyszuxFaceRetina&) = default;
+        SyszuxFaceRetina& operator=(const SyszuxFaceRetina&) = default;
         SyszuxFaceRetina(SyszuxFaceRetina&&) = default;
         SyszuxFaceRetina& operator=(SyszuxFaceRetina&&) = default;
         virtual ~SyszuxFaceRetina() = default;

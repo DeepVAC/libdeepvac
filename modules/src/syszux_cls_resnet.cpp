@@ -7,15 +7,6 @@
 #include "gemfield.h"
 
 namespace deepvac{
-
-SyszuxClsResnet::SyszuxClsResnet(std::string path, std::string device):Deepvac(path, device) {
-    set({224, 224});
-}
-
-SyszuxClsResnet::SyszuxClsResnet(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device){
-    set({224, 224});
-}
-
 void SyszuxClsResnet::set(std::vector<int> input_size) {
     input_size_ = input_size;
 }

@@ -8,8 +8,6 @@
 #include "syszux_ocr_pse.h"
 namespace deepvac {
 
-SyszuxOcrPse::SyszuxOcrPse(std::string path, std::string device):Deepvac(path, device) {}
-
 void SyszuxOcrPse::set(int long_size, int crop_gap) {
     long_size_ = long_size;
     crop_gap_ = crop_gap;

@@ -12,9 +12,9 @@
 namespace deepvac {
 class SyszuxClsMobile : public Deepvac {
     public:
-        SyszuxClsMobile(std::string path, std::string device="cpu");
-        SyszuxClsMobile(const SyszuxClsMobile&) = delete;
-        SyszuxClsMobile& operator=(const SyszuxClsMobile&) = delete;
+        using Deepvac::Deepvac;
+        SyszuxClsMobile(const SyszuxClsMobile&) = default;
+        SyszuxClsMobile& operator=(const SyszuxClsMobile&) = default;
         SyszuxClsMobile(SyszuxClsMobile&&) = default;
         SyszuxClsMobile& operator=(SyszuxClsMobile&&) = default;
         virtual ~SyszuxClsMobile() = default;

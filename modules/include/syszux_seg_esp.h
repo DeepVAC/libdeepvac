@@ -12,9 +12,9 @@
 namespace deepvac{
 class SyszuxSegEsp : public Deepvac{
     public:
-        SyszuxSegEsp(std::string path, std::string device = "cpu");
-        SyszuxSegEsp(const SyszuxSegEsp&) = delete;
-        SyszuxSegEsp& operator=(const SyszuxSegEsp&) = delete;
+        using Deepvac::Deepvac;
+        SyszuxSegEsp(const SyszuxSegEsp&) = default;
+        SyszuxSegEsp& operator=(const SyszuxSegEsp&) = default;
         SyszuxSegEsp(SyszuxSegEsp&&) = default;
         SyszuxSegEsp& operator=(SyszuxSegEsp&&) = default;
         virtual ~SyszuxSegEsp() = default;

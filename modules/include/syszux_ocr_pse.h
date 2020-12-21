@@ -16,9 +16,9 @@
 namespace deepvac {
 class SyszuxOcrPse : public Deepvac {
     public:
-        SyszuxOcrPse(std::string path, std::string device="cpu");
-        SyszuxOcrPse(const SyszuxOcrPse&) = delete;
-        SyszuxOcrPse& operator=(const SyszuxOcrPse&) = delete;
+        using Deepvac::Deepvac;
+        SyszuxOcrPse(const SyszuxOcrPse&) = default;
+        SyszuxOcrPse& operator=(const SyszuxOcrPse&) = default;
         SyszuxOcrPse(SyszuxOcrPse&&) = default;
         SyszuxOcrPse& operator=(SyszuxOcrPse&&) = default;
         virtual ~SyszuxOcrPse() = default;

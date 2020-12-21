@@ -17,6 +17,9 @@ namespace deepvac{
 SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac(path, device),
     prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
+SyszuxFaceRetina::SyszuxFaceRetina(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device),
+    prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
+
 std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::process(cv::Mat frame){
     GEMFIELD_SI;
     //prepare input

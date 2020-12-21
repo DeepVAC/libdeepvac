@@ -8,8 +8,6 @@
 
 namespace deepvac{
 
-SyszuxSegEsp::SyszuxSegEsp(std::string path, std::string device):Deepvac(path, device){}
-
 void SyszuxSegEsp::set(std::vector<int> image_size) {
     image_size_ = image_size;
 }
