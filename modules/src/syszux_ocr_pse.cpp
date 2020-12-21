@@ -65,7 +65,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     outputs = outputs.add_(1).div_(2);
     auto text = outputs.select(0, 0);
 
-    // kenel_num can be 3 or 7
+    // kernel_num can be 3 or 7
     int kernel_num = 7;
     auto kernels = outputs.slice(0, 0, kernel_num) * text;
     kernels = kernels.toType(torch::kU8);
