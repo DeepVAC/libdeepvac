@@ -24,8 +24,9 @@ class SyszuxOcrPse : public Deepvac {
         virtual ~SyszuxOcrPse() = default;
     public:
         std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> process(cv::Mat frame);
-        void set(int long_size, int gap);
+        void set(int long_size, int gap, int text_min_area, float text_mean_score);
     private:
+	std::vector<std::vector<float>> merge(std::vector<std::vector<float>> rects);
         void getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
         void growingTextLine(std::vector<cv::Mat> &kernals, std::vector<std::vector<int>> &text_line, float min_area);
         std::vector<std::vector<int>> adaptorPse(torch::Tensor input_data, float min_area);
@@ -35,5 +36,7 @@ class SyszuxOcrPse : public Deepvac {
     private:
         int long_size_{1280};
         int crop_gap_{10};
+        int text_min_area_{300};
+        float text_mean_score_{0.93};
 };
 } //namespace
