@@ -13,15 +13,15 @@
 namespace deepvac {
 class SyszuxDetectYolo : public Deepvac {
     public:
-        SyszuxDetectYolo(std::string path, std::string device="cpu");
-        SyszuxDetectYolo(const SyszuxDetectYolo&) = delete;
-        SyszuxDetectYolo& operator=(const SyszuxDetectYolo&) = delete;
+        using Deepvac::Deepvac;
+        SyszuxDetectYolo(const SyszuxDetectYolo&) = default;
+        SyszuxDetectYolo& operator=(const SyszuxDetectYolo&) = default;
         SyszuxDetectYolo(SyszuxDetectYolo&&) = default;
         SyszuxDetectYolo& operator=(SyszuxDetectYolo&&) = default;
         virtual ~SyszuxDetectYolo() = default;
     public:
         void set(int input_size, float iou_thresh, float score_thresh);
-        std::optional<std::vector<std::pair<int, std::vector<float>>>> process (cv::Mat& frame);
+        std::optional<std::vector<std::pair<int, std::vector<float>>>> process (cv::Mat frame);
     private:
         torch::Tensor postProcess(torch::Tensor& preds);
     private:

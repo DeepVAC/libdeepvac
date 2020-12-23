@@ -5,9 +5,6 @@
  */
 #include "syszux_detect_yolo.h"
 namespace deepvac{
-SyszuxDetectYolo::SyszuxDetectYolo(std::string path, std::string device):Deepvac(path, device){
-}
-
 void SyszuxDetectYolo::set(int input_size, float iou_thresh, float score_thresh) {
     input_size_ = input_size;
     iou_thresh_ = iou_thresh;
@@ -51,7 +48,7 @@ torch::Tensor SyszuxDetectYolo::postProcess(torch::Tensor& preds) {
 
 }
 
-std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo::process(cv::Mat& frame){
+std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo::process(cv::Mat frame){
     cv::Mat input_img = frame.clone();
     
     int h = input_img.rows;

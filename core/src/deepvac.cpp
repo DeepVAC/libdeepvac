@@ -31,6 +31,7 @@ Deepvac::Deepvac(const char* model_path, std::string device){
     std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
     GEMFIELD_DI(msg.c_str());
+    module_->eval();
 }
 
 Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
@@ -53,12 +54,44 @@ Deepvac::Deepvac(std::vector<unsigned char>&& buffer, std::string device){
     std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
     std::string msg = gemfield_org::format("Model loading time: %f", model_loading_duration.count());
     GEMFIELD_DI(msg.c_str());
+    module_->eval();
+}
+
+Deepvac::Deepvac(const Deepvac& rhs):module_(new torch::jit::script::Module(*rhs.module_)) {
+    device_ = rhs.device_;
+}
+
+Deepvac& Deepvac::operator=(const Deepvac& rhs){
+    if(this == &rhs){
+        return *this;
+    }
+    module_.reset( new torch::jit::script::Module( *rhs.module_ ) );
+    device_ = rhs.device_;
+    return *this;
+}
+
+void Deepvac::setModel(std::string model_path){
+    try{
+        module_ = std::make_unique<torch::jit::script::Module>(torch::jit::load(model_path, device_));
+    }catch(const c10::Error& e){
+        std::string msg = gemfield_org::format("%s: %s", "ERROR MODEL: ",e.what_without_backtrace() );
+        GEMFIELD_E(msg.c_str());
+        throw std::runtime_error(msg);
+    }catch(...){
+        std::string msg =  "Internal ERROR!";
+        GEMFIELD_E(msg.c_str());
+        throw std::runtime_error(msg);
+    }
+    module_->eval();
 }
 
 template<typename T> struct dependent_false : std::false_type {};
 template<typename T = at::Tensor>
 T Deepvac::forward(at::Tensor& t){
     GEMFIELD_SI;
+    if(device_.length() <3 or !module_){
+        throw std::runtime_error("Deepvac initialized incorrectly! Are you forget to call setDevice() or setModel() before usage?");
+    }
     torch::NoGradGuard no_grad;
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(t.to(device_));

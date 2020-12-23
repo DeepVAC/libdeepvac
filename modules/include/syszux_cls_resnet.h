@@ -12,9 +12,9 @@
 namespace deepvac{
 class SyszuxClsResnet : public Deepvac{
     public:
-        SyszuxClsResnet(std::string path, std::string device = "cpu");
-        SyszuxClsResnet(const SyszuxClsResnet&) = delete;
-        SyszuxClsResnet& operator=(const SyszuxClsResnet&) = delete;
+        using Deepvac::Deepvac;
+        SyszuxClsResnet(const SyszuxClsResnet&) = default;
+        SyszuxClsResnet& operator=(const SyszuxClsResnet&) = default;
         SyszuxClsResnet(SyszuxClsResnet&&) = default;
         SyszuxClsResnet& operator=(SyszuxClsResnet&&) = default;
         virtual ~SyszuxClsResnet() = default;

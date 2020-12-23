@@ -18,8 +18,14 @@ int main(int argc, char** argv)
     std::string path = argv[2];
     int long_size = 1280;
     int crop_gap = 5;
-    SyszuxOcrPse ocr_detect(ocr_pse_deepvac, device);
-    ocr_detect.set(long_size, crop_gap);
+    int text_min_area = 300;
+    float text_mean_score = 0.90;
+
+    SyszuxOcrPse ocr_detect;
+    ocr_detect.setDevice("cpu");
+    ocr_detect.setModel(ocr_pse_deepvac);
+
+    ocr_detect.set(long_size, crop_gap, text_min_area, text_mean_score);
 
     auto mat_opt = gemfield_org::img2CvMat(path);
     if(!mat_opt){

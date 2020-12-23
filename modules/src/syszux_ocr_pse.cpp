@@ -8,11 +8,11 @@
 #include "syszux_ocr_pse.h"
 namespace deepvac {
 
-SyszuxOcrPse::SyszuxOcrPse(std::string path, std::string device):Deepvac(path, device) {}
-
-void SyszuxOcrPse::set(int long_size, int crop_gap) {
+void SyszuxOcrPse::set(int long_size, int crop_gap, int text_min_area, float text_mean_score) {
     long_size_ = long_size;
     crop_gap_ = crop_gap;
+    text_min_area_ = text_min_area;
+    text_mean_score_ = text_mean_score;
 }
 
 cv::Mat SyszuxOcrPse::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) {
@@ -66,7 +66,10 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     outputs = torch::sign(outputs.sub_(1.0));
     outputs = outputs.add_(1).div_(2);
     auto text = outputs.select(0, 0);
-    auto kernels = outputs.slice(0, 0, 3) * text;
+
+    // kernel_num can be 3 or 7
+    int kernel_num = 7;
+    auto kernels = outputs.slice(0, 0, kernel_num) * text;
     kernels = kernels.toType(torch::kU8);
     
     float min_area = 10.0;
@@ -89,13 +92,13 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         torch::Tensor temp = points.select(1, 0).clone();
         points.select(1, 0) = points.select(1, 1);
         points.select(1, 1) = temp;
-        if (points.size(0) <= 300){
+        if (points.size(0) <= text_min_area_){
             continue;
         }
 
         torch::Tensor scores_i = scores.masked_select(mask_index);
         auto score_mean = torch::mean(scores_i).item<float>();
-        if (score_mean < 0.93){
+        if (score_mean < text_mean_score_){
             continue;
         }
 
@@ -112,7 +115,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         rect.center.y = rect.center.y * scale2[1];
         rect.size.width = rect.size.width * scale2[0];
         rect.size.height = rect.size.height * scale2[1];
-        if (std::abs(angle+90)<0.5 || std::abs(angle)<0.5) {
+        if (std::abs(angle+90)<2 || std::abs(angle)<2) {
             cv::Mat crop_box;
             cv::boxPoints(rect, crop_box);
 
@@ -166,29 +169,38 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     return crop_imgs_and_rects;
 }
 
-std::vector<std::vector<float>> SyszuxOcrPse::mergeBox(std::vector<std::vector<float>> rects) {
+std::vector<std::vector<float>> SyszuxOcrPse::merge(std::vector<std::vector<float>> rects) {
     std::vector<std::vector<float>> keep;
-    while (rects.size() > 0) {
-        if (rects.size() == 1) {
-            keep.push_back(rects[0]);
-            break;
-        }
-        std::vector<float> cur_rect = rects[0];
-        auto iter = std::remove(rects.begin(), rects.end(), cur_rect);
-        rects.erase(iter, rects.end());
-        std::vector<std::vector<float>> second2last_rects = rects;
-        for (auto &rect : second2last_rects) {
-        if (isMerge(cur_rect, rect)) {
-            float x_min = std::min(cur_rect[0], rect[0]);
-            float y_min = std::min(cur_rect[1], rect[1]);
-            float x_max = std::max(cur_rect[2], rect[2]);
-            float y_max = std::max(cur_rect[3], rect[3]);
-            cur_rect = {x_min, y_min, x_max, y_max};
-            iter = std::remove(rects.begin(), rects.end(), rect);
-            rects.erase(iter, rects.end());
+    for (int i=0; i<rects.size(); i++) {
+        bool flag = false;
+        for (int j=0; j<keep.size(); j++) {
+            if (isMerge(rects[i], keep[j])) {
+                flag = true;
+                float x_min = std::min(rects[i][0], keep[j][0]);
+                float y_min = std::min(rects[i][1], keep[j][1]);
+                float x_max = std::max(rects[i][2], keep[j][2]);
+                float y_max = std::max(rects[i][3], keep[j][3]);
+                keep[j] = {x_min, y_min, x_max, y_max};
+                break;
             }
         }
-        keep.push_back(cur_rect);
+        if (flag == false) {
+            keep.push_back(rects[i]);
+        }
+    }
+    return keep;
+}
+
+std::vector<std::vector<float>> SyszuxOcrPse::mergeBox(std::vector<std::vector<float>> rects) {
+    std::vector<std::vector<float>> keep = rects;
+    int length = keep.size();
+    while (true) {
+        keep = merge(keep);
+        if (keep.size() == length) {
+            break;
+        } else {
+            length = keep.size();
+        }
     }
     return keep;
 }
@@ -202,6 +214,7 @@ bool SyszuxOcrPse::isMerge(std::vector<float> rect1, std::vector<float> rect2) {
     float y2_min = rect2[1];
     float x2_max = rect2[2];
     float y2_max = rect2[3];
+    
 
     if (y1_max <= y2_min || y1_min >= y2_max) {
         return false;
@@ -213,10 +226,10 @@ bool SyszuxOcrPse::isMerge(std::vector<float> rect1, std::vector<float> rect2) {
     if ((y[2]-y[1])/(y[3]-y[0]) < 0.7) {
         return false;
     }
-    if ( (((x1_min - x2_max)>=0) && ((x1_min - x2_max)<=x_thre)) || (((x2_min - x1_max)>=0) && ((x2_min - x1_max)<=x_thre)) ) {
-        return true;
+    if ( (((x1_min - x2_max)>=0) && ((x1_min - x2_max)>x_thre)) || (((x2_min - x1_max)>=0) && ((x2_min - x1_max)>x_thre)) ) {
+        return false;
     }
-    return false;
+    return true;
 }
 
 void SyszuxOcrPse::getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals) {

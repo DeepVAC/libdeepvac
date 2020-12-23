@@ -17,26 +17,28 @@ namespace deepvac {
 //from pytorch 1.2, script::Module is now a reference type
 class SYSZUX_EXPORT Deepvac{
     public:
-        Deepvac() = delete;
-        Deepvac(const Deepvac&) = delete;
-        Deepvac& operator=(const Deepvac&) = delete;
+        Deepvac() = default;
+        Deepvac(const Deepvac& rhs);
+        Deepvac& operator=(const Deepvac& rhs);
         Deepvac(Deepvac&&) = default;
         Deepvac& operator=(Deepvac&&) = default;
         virtual ~Deepvac() = default;
-        explicit Deepvac(const char* model_path, std::string device = "cuda:0");
-        explicit Deepvac(std::string model_path, std::string device = "cuda:0"):Deepvac(model_path.c_str(), device){}
-        explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device = "cuda:0");
+        explicit Deepvac(const char* model_path, std::string device);
+        explicit Deepvac(std::string model_path, std::string device):Deepvac(model_path.c_str(), device){}
+        explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device);
     public:
+        void setDevice(std::string device){device_ = device;}
+        void setModel(std::string model_path);
         std::string getDevice(){return device_;}
     public:
         template<typename T = at::Tensor>
         T forward(at::Tensor& t);
 
     protected:
+        //all data members must be movable !!
+        //all data members need dynamic memory must be managed by smart ptr !!
         std::string device_;
         std::unique_ptr<torch::jit::script::Module> module_;
-        std::optional<at::Tensor> input_opt_;
-        at::Tensor input_tensor_;
 };
 
 }// namespace deepvac
