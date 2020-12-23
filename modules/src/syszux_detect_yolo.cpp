@@ -13,7 +13,7 @@ void SyszuxDetectYolo::set(int input_size, float iou_thresh, float score_thresh)
 
 torch::Tensor SyszuxDetectYolo::postProcess(torch::Tensor& preds) {
     std::vector<torch::Tensor> index = torch::where(preds.select(2, 4) > score_thresh_);
-    auto pred = preds.index_select(1, index[1]).squeeze();
+    auto pred = preds.index_select(1, index[1])[0];
     if (pred.sizes()[0] == 0) {
         return torch::zeros({0, 6});
     }
@@ -58,16 +58,17 @@ std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo:
     int w_new = (int)(std::round((float)w * r));
     int h_new = (int)(std::round((float)h * r));
     
-    float dw = (float)(input_size_ - w_new) / 2.0f;
-    float dh = (float)(input_size_ - h_new) / 2.0f;
+    float dw = (float)((int)(input_size_ - w_new) % 32) / 2.0;
+    float dh = (float)((int)(input_size_ - h_new) % 32) / 2.0;
 
     if (h != h_new and w != w_new) {
         cv::resize(input_img, input_img, cv::Size(w_new, h_new), cv::INTER_LINEAR);
     }
-    int top = ((int)(input_size_) - h_new) / 2;
-    int bottom = ((int)(input_size_)- h_new + 1) / 2;
-    int left = ((int)(input_size_)- w_new) / 2;
-    int right = ((int)(input_size_)- w_new + 1) / 2;
+
+    int top = (int)(std::round(dh - 0.1));
+    int bottom = (int)(std::round(dh + 0.1));
+    int left = (int)(std::round(dw - 0.1));
+    int right = (int)(std::round(dw + 0.1));
     
     cv::copyMakeBorder(input_img, input_img, top, bottom, left, right, cv::BORDER_CONSTANT, {114, 114, 114});
     cv::cvtColor(input_img, input_img, cv::COLOR_BGR2RGB);
@@ -79,8 +80,7 @@ std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo:
     }
     auto input_tensor = input_tensor_opt.value();
 
-    auto output = forward<std::vector<c10::IValue>>(input_tensor);
-    torch::Tensor preds = output[0].toTensor();
+    at::Tensor preds = forward(input_tensor);
     
     auto pred = postProcess(preds);
     
