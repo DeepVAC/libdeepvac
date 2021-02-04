@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     facial_5pts_mat = facial_5pts_mat.t();
 
     gemfield_org::AlignFace align_face;
-    cv::Mat dst_img = align_face(mat_out, facial_5pts_mat);
+    auto [dst_img, dst_points] = align_face(mat_out, facial_5pts_mat);
     std::cout << dst_img.rows << std::endl;
     cv::imwrite("./test_res.jpg", dst_img);
 }

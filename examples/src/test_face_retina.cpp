@@ -29,7 +29,11 @@ int main(int argc, const char* argv[]) {
     }
     auto detect_out = detect_out_opt.value();
     for (int i=0; i<detect_out.size(); i++){
-        cv::imwrite("./test_face_retina_"+std::to_string(i)+".jpg", detect_out[i]);
+        auto [img, bbox, points] = detect_out[i];
+        for(int i = 0; i < points.size(); i+=2) {
+            cv::circle(img, cv::Point2i(points[i], points[i+1]), 3, cv::Scalar(0, 0, 255), 1);
+        }
+        cv::imwrite("./test_face_retina_"+std::to_string(i)+".jpg", img);
     }
     return 0;
 }
