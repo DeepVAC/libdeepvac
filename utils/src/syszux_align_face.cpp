@@ -4,7 +4,6 @@
  * You may not use this file except in compliance with the License.
  */
 
-#include <vector>
 #include "gemfield.h"
 #include "syszux_align_face.h"
 #include <torch/script.h>
@@ -25,39 +24,59 @@ AlignFace::AlignFace()
     crop_size_ = cv::Mat(1,2,CV_64F,&CROP_SIZE).clone();
 }
 
-cv::Mat AlignFace::operator() (cv::Mat& frame, cv::Mat& facial_5pts)
+std::tuple<cv::Mat, std::vector<float>> AlignFace::operator() (cv::Mat& frame, cv::Mat& facial_5pts)
 {
     cv::Mat x, y;
     cv::Mat facial;
+    std::vector<cv::Point2f> points;
     facial_5pts.convertTo(facial_5pts, CV_64F);
     //x1,y1,x2,y2... somebody familiar with cv::Mat, please refactor this code snippet.
     for(int i=0; i<facial_5pts.cols; i=i+2){
-        x.push_back(facial_5pts.at<double>(i));
-        y.push_back(facial_5pts.at<double>(i+1));
+        double coord_x = facial_5pts.at<double>(i);
+        double coord_y = facial_5pts.at<double>(i+1);
+        x.push_back(coord_x);
+        y.push_back(coord_y);
+        points.emplace_back(cv::Point2f(coord_x, coord_y));
     }
-    
+
     cv::hconcat(x, y, facial);
-    return warpAndCrop(frame, facial);
+    cv::Mat tfm = getAffineTransform(facial);
+
+    cv::Mat point_matrix = tfm.t();
+    std::vector<float> dst_points = pointsTransform(points, point_matrix);
+    cv::Mat img_matrix = tfm.colRange(0, 2).t();
+    cv::Mat dst_img = warpAndCrop(frame, img_matrix);
+
+    return std::tuple(dst_img, dst_points);
 }
 
-cv::Mat AlignFace::warpAndCrop(cv::Mat& src_img, cv::Mat& facial_5pts)
+cv::Mat AlignFace::warpAndCrop(cv::Mat& src_img, cv::Mat& matrix)
 {
-    if(ref_facial_5pts_.rows != facial_5pts.rows){
+    cv::Mat dst_img;
+    cv::warpAffine(src_img, dst_img, matrix, cv::Size(int(crop_size_.at<double>(0)), int(crop_size_.at<double>(1))));
+    return dst_img;
+}
+
+std::vector<float> AlignFace::pointsTransform(const std::vector<cv::Point2f>& points, const cv::Mat& matrix) {
+    std::vector<cv::Point2f> transformed_points;
+    cv::perspectiveTransform(points, transformed_points, matrix);
+
+    std::vector<float> dst_points;
+    for(auto p : transformed_points) {
+        dst_points.emplace_back(p.x);
+        dst_points.emplace_back(p.y);
+    }
+    return dst_points;
+}
+
+cv::Mat AlignFace::getAffineTransform(cv::Mat& facial_5pts)
+{
+     if(ref_facial_5pts_.rows != facial_5pts.rows){
         std::string msg = gemfield_org::format("ref_facial_5pts_ and facial_5pts must have the same shape: %d: vs %d", int(ref_facial_5pts_.rows), int(facial_5pts.rows));
         GEMFIELD_E(msg.c_str());
         throw std::runtime_error(msg);
 	}
 
-    cv::Mat tfm = getAffineTransform(facial_5pts);
-
-    cv::Mat dst_img;
-    cv::warpAffine(src_img, dst_img, tfm, cv::Size(int(crop_size_.at<double>(0)), int(crop_size_.at<double>(1))));
-
-    return dst_img;
-}
-
-cv::Mat AlignFace::getAffineTransform(cv::Mat& facial_5pts)
-{
     cv::Mat trans1 = findNonereflectiveSimilarity(facial_5pts, ref_facial_5pts_);
     
     cv::Mat xyR = ref_facial_5pts_.clone();
@@ -81,7 +100,8 @@ cv::Mat AlignFace::getAffineTransform(cv::Mat& facial_5pts)
     }else{
         trans = trans2;
     }
-    return trans.colRange(0, 2).t();
+    //return trans.colRange(0, 2).t();
+    return trans;
 }
 
 cv::Mat AlignFace::findNonereflectiveSimilarity(cv::Mat& facial_5pts, cv::Mat& ref_facial_5pts)

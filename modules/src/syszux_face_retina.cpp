@@ -20,7 +20,7 @@ SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac
 SyszuxFaceRetina::SyszuxFaceRetina(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device),
     prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
 
-std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::process(cv::Mat frame){
+std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> SyszuxFaceRetina::process(cv::Mat frame){
     GEMFIELD_SI;
     //prepare input
     int h = frame.rows;
@@ -96,10 +96,10 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::process(cv::Mat frame){
     dets = dets.index(keep);
     landms = landms.index(keep);
     
-    std::vector<cv::Mat> detect_vec;
+    std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>> faces_info;
 
     if(dets.size(0) == 0){
-        return detect_vec;
+        return faces_info;
     }
 
     std::string msg = gemfield_org::format("detected %d faces", dets.size(0));
@@ -114,13 +114,20 @@ std::optional<std::vector<cv::Mat>> SyszuxFaceRetina::process(cv::Mat frame){
     landms = landms.to(torch::kCPU);
     cv::Mat landms_mat(landms.size(0), landms.size(1), CV_32F);
     std::memcpy((void *) landms_mat.data, landms.data_ptr(), torch::elementSize(torch::kF32) * landms.numel());
+    dets = dets.to(torch::kCPU);
+    cv::Mat dets_mat(dets.size(0), dets.size(1), CV_32F);
+    std::memcpy((void *) dets_mat.data, dets.data_ptr(), torch::elementSize(torch::kF32) * dets.numel());
     
-    for(int i=0; i<landms_mat.rows; i++){
+    
+
+    for(int i=0; i<landms_mat.rows; i++) {
         auto landmark = landms_mat.row(i);
-        cv::Mat dst_img = align_face_(frame, landmark);
+        auto [dst_img, dst_points] = align_face_(frame, landmark);
+        auto bbox = dets_mat.row(i);
+        std::vector<float> bbox_vec(bbox.begin<float>(), bbox.end<float>());
         dst_img.convertTo(dst_img, CV_32FC3);
-        detect_vec.push_back(dst_img);
+        faces_info.emplace_back(std::tuple(dst_img, bbox_vec, dst_points));
     }
-    return detect_vec;
+    return faces_info;
 }
 } //namespace deepvac

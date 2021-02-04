@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <tuple>
+
 #include "deepvac.h"
 #include "syszux_priorbox.h"
 #include "syszux_nms.h"
@@ -24,7 +26,7 @@ class SyszuxFaceRetina : public Deepvac{
         SyszuxFaceRetina& operator=(SyszuxFaceRetina&&) = default;
         virtual ~SyszuxFaceRetina() = default;
     public:
-        std::optional<std::vector<cv::Mat>> process(cv::Mat frame);
+        std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> process(cv::Mat frame);
     
     private:
         gemfield_org::PriorBox prior_box_;
