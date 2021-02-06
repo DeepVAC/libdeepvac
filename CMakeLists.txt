@@ -144,7 +144,7 @@ if(USE_STATIC_LIBTORCH)
     append_lib_if_found(nnpack pytorch_qnnpack qnnpack XNNPACK)
     append_lib_if_found(caffe2_protos protobuf-lite protobuf protoc)
     append_lib_if_found(onnx onnx_proto)
-    append_lib_if_found(foxi_loader fmt)
+    append_lib_if_found(foxi_loader kineto fmt)
     append_lib_if_found(clog cpuinfo pthreadpool)
     append_lib_if_found(eigen_blas)
     append_lib_if_found(dnnl fbgemm mkldnn sleef asmjit)
@@ -181,6 +181,7 @@ if(USE_STATIC_LIBTORCH)
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusparse.so
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver.so
+	    ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcupti.so
             ${cublas_LIBRARY}
             ${cublasLT_LIBRARY}
             ${CUDA_nvToolsExt_LIBRARY}

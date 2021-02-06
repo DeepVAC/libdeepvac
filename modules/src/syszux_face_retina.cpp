@@ -72,18 +72,18 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     torch::Tensor scores = forward_conf.slice(1, 1, 2);
     float confidence_threshold = 0.4;
     std::vector<torch::Tensor> index = torch::where(scores>confidence_threshold);
-    boxes = boxes.index(index[0]);
-    landms = landms.index(index[0]);
-    scores = scores.index(index[0]);
+    boxes = boxes.index({index[0]});
+    landms = landms.index({index[0]});
+    scores = scores.index({index[0]});
 
     int top_k = 50;
     std::tuple<torch::Tensor,torch::Tensor> sort_ret = torch::sort(scores, 0, 1);
     torch::Tensor idx = std::get<1>(sort_ret).squeeze(1);
     idx = idx.slice(0, 0, top_k);
 
-    boxes = boxes.index(idx);
-    landms = landms.index(idx);
-    scores = scores.index(idx);
+    boxes = boxes.index({idx});
+    landms = landms.index({idx});
+    scores = scores.index({idx});
 
     torch::Tensor dets = torch::cat({boxes, scores}, 1);
     float nms_threshold = 0.4;
@@ -93,8 +93,8 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     // keep top-K faster NMS
     int keep_top_k = 50;
     keep = keep.slice(0, 0, keep_top_k);
-    dets = dets.index(keep);
-    landms = landms.index(keep);
+    dets = dets.index({keep});
+    landms = landms.index({keep});
     
     std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>> faces_info;
 

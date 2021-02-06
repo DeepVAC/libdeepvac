@@ -104,9 +104,11 @@ cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch/ ..
 cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch_cpu/ -DBUILD_STATIC=ON ..
 #编译libdeepvac静态库，使用LibTorch静态库
 cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch_cuda/ -DBUILD_STATIC=ON -DUSE_STATIC_LIBTORCH=ON -DUSE_MKL=ON -DUSE_CUDA=ON ..
-
+#Gemfield way
+cmake -DBUILD_STATIC=ON  -DUSE_STATIC_LIBTORCH=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch_cuda;/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install .. 
 
 cmake --build . --config Release
+make install
 ```
 
 # 演示

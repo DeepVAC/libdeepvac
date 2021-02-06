@@ -42,7 +42,7 @@ torch::Tensor SyszuxDetectYolo::postProcess(torch::Tensor& preds) {
     auto scores = pred.slice(1, 4, 5);
     auto dets = torch::cat({boxes, scores}, 1);
     auto keep = gemfield_org::nms(dets, iou_thresh_);
-    pred = pred.index(keep);
+    pred = pred.index({keep});
 
     return pred;
 
