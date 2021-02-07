@@ -10,13 +10,6 @@ RUN conda install -y pytorch -c gemfield && \
     conda clean -ya && \
     /opt/conda/bin/conda clean -y --force-pkgs-dirs
 
-RUN git clone https://github.com/pytorch/vision && \
-    cd vision && \
-    export FORCE_CUDA=1 && \
-    pip install -v . && \
-    cd .. && \
-    rm -rf vision
-
 RUN git clone https://github.com/DeepVAC/libdeepvac libdeepvac && \
     cd libdeepvac && \
     mkdir build && \
