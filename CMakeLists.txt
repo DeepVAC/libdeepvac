@@ -93,77 +93,29 @@ endif()
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
 
-macro(append_lib_if_found)
-    foreach (_arg ${ARGN})
-        find_library(${_arg}_LIBRARY ${_arg} PATHS "${TORCH_INSTALL_PREFIX}/lib")
-        if(${_arg}_LIBRARY)
-	        list(APPEND TORCH_STATIC_LIBRARIES ${${_arg}_LIBRARY})
-        else()
-	        message(WARNING "static library ${${_arg}_LIBRARY} not found.")
-        endif()
-    endforeach()
-endmacro()
-
-macro(append_wholearchive_lib_if_found)
-  foreach (_arg ${ARGN})
-    find_library(${_arg}_LIBRARY ${_arg} PATHS "${TORCH_INSTALL_PREFIX}/lib")
-    if(${_arg}_LIBRARY)
-      if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-        list(APPEND TORCH_STATIC_LIBRARIES "-Wl,-force_load,${${_arg}_LIBRARY}")
-      elseif(MSVC)
-        list(APPEND TORCH_STATIC_LIBRARIES "-WHOLEARCHIVE:${${_arg}_LIBRARY}")
-      else()
-        # gcc
-        list(APPEND TORCH_STATIC_LIBRARIES "-Wl,--whole-archive ${${_arg}_LIBRARY} -Wl,--no-whole-archive")
-      endif()
-    else()
-      message(WARNING "static library ${${_arg}_LIBRARY} not found.")
-    endif()
-  endforeach()
-endmacro()
-
 #libtorch static stuff
 if(USE_STATIC_LIBTORCH)
     message(STATUS "will find libtorch static library since USE_STATIC_LIBTORCH is ON")
-
-    #libtorch.a
-    find_library(torch_LIBRARY torch PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-    #libtorch_cpu.a
-    find_library(torch_cpu_LIBRARY torch_cpu PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-
-    if(USE_CUDA)
-        find_library(torch_cuda_LIBRARY torch_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-        find_library(c10_cuda_LIBRARY c10_cuda PATHS "${TORCH_INSTALL_PREFIX}/lib" REQUIRED)
-    endif()
-
-    SET (TORCH_CUDA_STATIC_LIBRARIES "-Wl,--whole-archive ${torch_LIBRARY} ${torch_cpu_LIBRARY} ${torch_cuda_LIBRARY} ${c10_cuda_LIBRARY} -Wl,--no-whole-archive")
-    SET (TORCH_CPU_STATIC_LIBRARIES "-Wl,--whole-archive ${torch_LIBRARY} ${torch_cpu_LIBRARY} -Wl,--no-whole-archive")
-
-    append_lib_if_found(c10)
-    append_lib_if_found(Caffe2_perfkernels_avx512 Caffe2_perfkernels_avx2 Caffe2_perfkernels_avx)
-    append_lib_if_found(nnpack pytorch_qnnpack qnnpack XNNPACK)
-    append_lib_if_found(caffe2_protos protobuf-lite protobuf protoc)
-    append_lib_if_found(onnx onnx_proto)
-    append_lib_if_found(foxi_loader kineto fmt)
-    append_lib_if_found(clog cpuinfo pthreadpool)
-    append_lib_if_found(eigen_blas)
-    append_lib_if_found(dnnl fbgemm mkldnn sleef asmjit)
-
+    list(APPEND TORCH_CUDA_STATIC_LIBRARIES ${TORCH_LIBRARIES})
     if(USE_MKL)
-        list(APPEND TORCH_STATIC_LIBRARIES ${MKL_LIBRARIES})
-        list(APPEND TORCH_STATIC_LIBRARIES "-lpthread")
-        list(APPEND TORCH_STATIC_LIBRARIES "-lm")
-        list(APPEND TORCH_STATIC_LIBRARIES "-ldl")
+        list(APPEND TORCH_CUDA_STATIC_LIBRARIES ${MKL_LIBRARIES})
+        list(APPEND TORCH_CUDA_STATIC_LIBRARIES "-lpthread")
+        list(APPEND TORCH_CUDA_STATIC_LIBRARIES "-lm")
+        list(APPEND TORCH_CUDA_STATIC_LIBRARIES "-ldl")
     endif()
-    list(APPEND TORCH_CPU_STATIC_LIBRARIES ${TORCH_STATIC_LIBRARIES})
-    message(STATUS "found libtorch cpu static library: ${TORCH_CPU_STATIC_LIBRARIES}")
+
+    foreach(GEM ${TORCH_CUDA_STATIC_LIBRARIES})
+        string(FIND ${GEM} "_cuda.a" GEM_FIELD)
+        if(NOT ${GEM_FIELD} EQUAL "-1")
+            msssage(STATUS "found cuda library need to be removed from TORCH_CPU_STATIC_LIBRARIES: ${GEM}")
+            continue()
+        endif()
+        list(APPEND TORCH_CPU_STATIC_LIBRARIES ${GEM})
+    endforeach()
 
     if(USE_CUDA)
-        list(PREPEND TORCH_STATIC_LIBRARIES ${TORCH_CUDA_STATIC_LIBRARIES})
         find_package(CUDA REQUIRED)
         message(STATUS "will build with CUDA: ${CUDA_TOOLKIT_ROOT_DIR}")
-        append_lib_if_found(nccl_static)
-        message(STATUS "found libtorch cuda static library: ${TORCH_STATIC_LIBRARIES}")
         find_library(CUDNN_LIBRARY cudnn
             HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
             PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
@@ -181,7 +133,6 @@ if(USE_STATIC_LIBTORCH)
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusparse.so
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusolver.so
-	    ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcupti.so
             ${cublas_LIBRARY}
             ${cublasLT_LIBRARY}
             ${CUDA_nvToolsExt_LIBRARY}
@@ -189,7 +140,7 @@ if(USE_STATIC_LIBTORCH)
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcudart.so
         )
         message(STATUS "CUDA_LIBRARIES_ALL: ${CUDA_LIBRARIES_ALL}")
-        #set(CUDA_LIBRARIES "-lcurand -lcusparse -lcufft -lcusolver -lcublas -lcublasLt -lnvToolsExt -lcudnn -lcudart")
+        set(TORCH_STATIC_LIBRARIES ${TORCH_CUDA_STATIC_LIBRARIES})
     else()
         set(TORCH_STATIC_LIBRARIES ${TORCH_CPU_STATIC_LIBRARIES})
     endif()
