@@ -24,6 +24,8 @@ RUN git clone https://github.com/DeepVAC/libdeepvac libdeepvac && \
         cmake -DBUILD_STATIC=ON -DUSE_STATIC_LIBTORCH=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH="/gemfield/libtorch;/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install .. && \
         cmake --build . --config Release && \
-        make install
+        make install && \
+        cd .. && \
+        rm -rf build
 
 RUN pip3 install --no-cache-dir --upgrade deepvac
