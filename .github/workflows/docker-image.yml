@@ -10,21 +10,18 @@ jobs:
       id: gemfield
       run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
     - uses: actions/checkout@v2
-    # - name: Build the base image
-    #   run: docker build . --file docker/ubuntu20.04/Dockerfile.cuda --tag gemfield/cuda:11.0.3-cudnn8-devel-ubuntu20.04
-    # - name: Login to DockerHub
-    #   uses: docker/login-action@v1 
-    #   with:
-    #     username: ${{ secrets.HUB_USERNAME }}
-    #     password: ${{ secrets.HUB_TOKEN }}
-    # - name: Push Docker image
-    #   run: docker push gemfield/cuda
-    - name: Build the deepvac devel image
-     run: docker build . --file docker/ubuntu20.04/Dockerfile.deepvac --tag gemfield/deepvac:11.0.3-cudnn8-devel-ubuntu20.04
     - name: Login to DockerHub
-     uses: docker/login-action@v1 
-     with:
-       username: ${{ secrets.HUB_USERNAME }}
-       password: ${{ secrets.HUB_TOKEN }}
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.HUB_USERNAME }}
+        password: ${{ secrets.HUB_TOKEN }}
+    - name: Build the base image
+      run: docker build . --file docker/ubuntu20.04/Dockerfile.cuda --tag gemfield/cuda:11.0.3-cudnn8-devel-ubuntu20.04
+      if: github.ref == 'refs/heads/gemfield_cuda'
     - name: Push Docker image
-     run: docker push gemfield/deepvac
+      run: docker push gemfield/cuda
+      if: github.ref == 'refs/heads/gemfield_cuda'
+    - name: Build the deepvac devel image
+      run: docker build . --file docker/ubuntu20.04/Dockerfile.deepvac --tag gemfield/deepvac:11.0.3-cudnn8-devel-ubuntu20.04
+    - name: Push Docker image
+      run: docker push gemfield/deepvac
