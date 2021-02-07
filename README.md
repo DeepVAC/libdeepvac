@@ -40,48 +40,11 @@ libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
 
 # 项目依赖
 libdeepvac的编译依赖C++17编译器、CMake、opencv、LibTorch。  
-你可以直接使用我们提供的Docker image来进行开发：
-```bash
-docker run -it -h libdeepvac --name libdeepvac gemfield/deepvac:10.2-cudnn7-devel-ubuntu18.04 bash
-```
-也可以自己手工配置环境依赖，如下所示：
+最简便、高效的方式就是使用我们提供的DeepVAC开发时[Docker镜像](https://github.com/DeepVAC/deepvac#2-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87)。
 
-#### C++17
-在Ubuntu 20.04上，最新的g++版本为9.3，已经支持C++17。  
-在Ubuntu 18.04上，你需要按照如下方式安装支持C++17的编译器：
-```bash
-apt install software-properties-common
-add-apt-repository ppa:ubuntu-toolchain-r/test
-apt install gcc-9 g++-9
-export CC=/usr/bin/gcc-9
-export CXX=/usr/bin/g++-9
-```
-
-#### cmake
-```bash
-apt install cmake
-```
-  
-#### OpenCV;
-使用如下的方式来安装预编译的opencv库：
-```bash
-#install opencv on ubuntu
-apt install libopencv-dev
-```
-如果想要从源码编译，则
-```bash
-git clone https://github.com/opencv/opencv.git
-cd opencv-4.4.0
-mkdir build && cd build
-cmake .. -DBUILD_LIST=core,imgproc,imgcodecs -DBUILD_SHARED_LIBS=ON/OFF
-make -j8 && make install
-```
-
-#### LibTorch
-支持LibTorch动态库和静态库。因为目前libdeepvac仅支持目标为x86_64 Linux平台目标的编译，所以LibTorch也要下载该平台上的。
-- 若想使用LibTorch 1.7.0 动态库，则下载[LibTorch 1.7.0](https://download.pytorch.org/libtorch/cu102/libtorch-cxx11-abi-shared-with-deps-1.7.0.zip)。  
-- 若想使用LibTorch 1.6.0 静态库，则下载[LibTorch 1.6.0](https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda_1.6.0.tar.gz)。
-- 若想使用LibTorch 1.7.0 静态库，则下载[LibTorch 1.7.0](https://github.com/CivilNet/libtorch/releases/download/v1.7.0/libtorch_cuda_1.7.0.tar.gz)。
+- 该镜像内置的LibTorch版本为：[LibTorch4DeepVAC (x86-64 Linux) 1.8.0](https://github.com/CivilNet/libtorch/releases/download/1.8.0/libtorch.tar.gz)；
+- 你也可以使用[PyTorch官方](https://pytorch.org/)LibTorch版本替换内置的LibTorch版本；
+- 未来几个月，该镜像还将包含LibTorch4DeepVAC (Android) 1.8.0；
 
 
 # 编译
@@ -91,21 +54,14 @@ make -j8 && make install
 - USE_MKL，仅在USE_STATIC_LIBTORCH=ON的情况下生效，是否使用MKL来作为BLAS/LAPACK后端；
 - USE_CUDA，仅在USE_STATIC_LIBTORCH=ON的情况下生效，是否使用CUDA。
 
-CMake命令举例如下：
+CMake命令如下：
 
 ```bash
 # create build directory
 mkdir build
 cd build
 
-#编译libdeepvac动态库，使用LibTorch动态库
-cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch/ ..
-#编译libdeepvac静态库，使用LibTorch动态库
-cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch_cpu/ -DBUILD_STATIC=ON ..
-#编译libdeepvac静态库，使用LibTorch静态库
-cmake -DCMAKE_PREFIX_PATH=/home/gemfield/libtorch_cuda/ -DBUILD_STATIC=ON -DUSE_STATIC_LIBTORCH=ON -DUSE_MKL=ON -DUSE_CUDA=ON ..
-#Gemfield way
-cmake -DBUILD_STATIC=ON  -DUSE_STATIC_LIBTORCH=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch_cuda;/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install .. 
+cmake -DBUILD_STATIC=ON  -DUSE_STATIC_LIBTORCH=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch;/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install .. 
 
 cmake --build . --config Release
 make install
