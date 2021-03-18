@@ -12,9 +12,9 @@ project(deepvac
 
 
 option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
-option(BUILD_STATIC "build static libdeepvac library" OFF)
+option(BUILD_STATIC "build static libdeepvac library" ON)
 option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
-option(USE_STATIC_LIBTORCH "use LibTorch static library" OFF)
+option(USE_STATIC_LIBTORCH "use LibTorch static library" ON)
 option(USE_CUDA "Use CUDA" OFF)
 option(BUILD_ALL_EXAMPLES "build all examples" OFF)
 option(USE_LOADER "build loader which needs c++17" OFF)
