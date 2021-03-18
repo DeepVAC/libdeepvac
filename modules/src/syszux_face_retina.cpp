@@ -8,7 +8,6 @@
 #include <iterator>
 #include <algorithm>
 #include <sstream>
-#include <filesystem>
 #include "syszux_face_retina.h"
 #include "gemfield.h"
 

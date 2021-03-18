@@ -17,6 +17,7 @@ option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
 option(USE_STATIC_LIBTORCH "use LibTorch static library" OFF)
 option(USE_CUDA "Use CUDA" OFF)
 option(BUILD_ALL_EXAMPLES "build all examples" OFF)
+option(USE_LOADER "build loader which needs c++17" OFF)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
@@ -76,8 +77,6 @@ if(USE_MKL AND USE_STATIC_LIBTORCH)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_COMPILER /usr/bin/gcc-9)
-set(CMAKE_CXX_COMPILER /usr/bin/g++-9)
 #setup library output dir
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 #setup binary output dir
@@ -92,7 +91,7 @@ endif()
 
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
-
+find_package(Eigen3 QUIET)
 #libtorch static stuff
 if(USE_STATIC_LIBTORCH)
     message(STATUS "will find libtorch static library since USE_STATIC_LIBTORCH is ON")
@@ -186,7 +185,10 @@ message(STATUS "TORCH_HEADER: ${TORCH_INCLUDE_DIRS}")
 
 # add subdiretories
 add_subdirectory(utils)
-add_subdirectory(loader)
+if(USE_LOADER)
+    message(STATUS "Will build loader module since you enabled USE_LOADER.")
+    add_subdirectory(loader)
+endif()
 add_subdirectory(core)
 add_subdirectory(modules)
 
