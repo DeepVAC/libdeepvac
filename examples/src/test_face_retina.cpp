@@ -23,6 +23,7 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
     auto mat_out = mat_opt.value();
+    for (int num=0; num<10; num++) {
     auto detect_out_opt = face_detect.process(mat_out);
     if(!detect_out_opt){
         throw std::runtime_error("no face detected");
@@ -34,6 +35,7 @@ int main(int argc, const char* argv[]) {
             cv::circle(img, cv::Point2i(points[i], points[i+1]), 3, cv::Scalar(0, 0, 255), 1);
         }
         cv::imwrite("./test_face_retina_"+std::to_string(i)+".jpg", img);
+    }
     }
     return 0;
 }

@@ -25,11 +25,27 @@ class SyszuxFaceRetina : public Deepvac{
         SyszuxFaceRetina(SyszuxFaceRetina&&) = default;
         SyszuxFaceRetina& operator=(SyszuxFaceRetina&&) = default;
         virtual ~SyszuxFaceRetina() = default;
+        void setTopK(int top_k);
+        void setKeepTopK(int keep_top_k);
+        void setConfThreshold(float confidence_threshold);
+        void setNMSThreshold(float nms_threshold);
+        void setMaxHW(int max_hw);
     public:
         std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> process(cv::Mat frame);
     
     private:
         gemfield_org::PriorBox prior_box_;
         gemfield_org::AlignFace align_face_;
+        int top_k_;
+        int keep_top_k_;
+        float nms_threshold_;
+        float confidence_threshold_;
+        int max_hw_;
+        torch::Tensor variances_tensor_;
+        int last_h_;
+        int last_w_;
+	torch::Tensor last_prior_;
+        torch::Tensor last_box_scale_;
+        torch::Tensor last_lmk_scale_;
 };
 } //namespace deepvac
