@@ -150,8 +150,6 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     cv::Mat dets_mat(dets.size(0), dets.size(1), CV_32F);
     std::memcpy((void *) dets_mat.data, dets.data_ptr(), torch::elementSize(torch::kF32) * dets.numel());
     
-    
-
     for(int i=0; i<landms_mat.rows; i++) {
         auto landmark = landms_mat.row(i);
         auto [dst_img, dst_points] = align_face_(frame, landmark);

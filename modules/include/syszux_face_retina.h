@@ -44,7 +44,7 @@ class SyszuxFaceRetina : public Deepvac{
         torch::Tensor variances_tensor_;
         int last_h_;
         int last_w_;
-	torch::Tensor last_prior_;
+        torch::Tensor last_prior_;
         torch::Tensor last_box_scale_;
         torch::Tensor last_lmk_scale_;
 };
