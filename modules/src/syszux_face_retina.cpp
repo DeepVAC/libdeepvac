@@ -13,17 +13,30 @@
 
 namespace deepvac{
 
-SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac(path, device),
-    prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}), variances_tensor_(torch::tensor({0.1, 0.2}).to(device)),
-    top_k_(50), keep_top_k_(50), confidence_threshold_(0.4), nms_threshold_(0.4), max_hw_(2000), 
-    last_w_(0), last_h_(0), last_prior_(torch::ones({1, 4})),
-    last_box_scale_(torch::ones({1, 4})), last_lmk_scale_(torch::ones({1, 10})){}
+SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac(path, device), prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){
+    initParameter(device);
+}
 
-SyszuxFaceRetina::SyszuxFaceRetina(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device),
-    prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}), variances_tensor_(torch::tensor({0.1, 0.2}).to(device)),
-    top_k_(50), keep_top_k_(50), confidence_threshold_(0.4), nms_threshold_(0.4), max_hw_(2000),
-    last_w_(0), last_h_(0), last_prior_(torch::ones({1, 4})),
-    last_box_scale_(torch::ones({1, 4})), last_lmk_scale_(torch::ones({1, 10})){}
+SyszuxFaceRetina::SyszuxFaceRetina(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device), prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){
+    initParameter(device);
+}
+
+void SyszuxFaceRetina::initParameter(std::string device){
+    variances_tensor_ = torch::tensor({0.1, 0.2}).to(device);
+
+    setTopK(50);
+    setKeepTopK(50);
+    setConfThreshold(0.4);
+    setNMSThreshold(0.4);
+    setMaxHW(2000);
+    setGapThreshold(0.1);
+
+    last_w_ = 0;
+    last_h_ = 0;
+    last_prior_ = torch::ones({1, 4});
+    last_box_scale_ = torch::ones({1, 4});
+    last_lmk_scale_ = torch::ones({1, 10});
+}
 
 void SyszuxFaceRetina::setTopK(int top_k){
     top_k_ = top_k;
@@ -43,6 +56,10 @@ void SyszuxFaceRetina::setNMSThreshold(float nms_threshold){
 
 void SyszuxFaceRetina::setMaxHW(int max_hw){
     max_hw_ = max_hw;
+}
+
+void SyszuxFaceRetina::setGapThreshold(float gap_threshold){
+    gap_threshold_ = gap_threshold;
 }
 
 std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> SyszuxFaceRetina::process(cv::Mat frame){
@@ -71,21 +88,23 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     auto forward_conf = output[1].toTensor();
     auto landms = output[2].toTensor();
     //gemfield, prepare output
-    if ( std::abs(h-last_h_)<=0.2*last_h_ and std::abs(w-last_w_)<=0.2*last_w_) {
+    if ( std::abs(h-last_h_)<=gap_threshold_*last_h_ and std::abs(w-last_w_)<=gap_threshold_*last_w_) {
         if ( h!=last_h_ or w!=last_w_ ) {
             cv::resize(frame, frame, cv::Size(last_w_, last_h_));
         }
-    }
-    else {
+    } else {
         last_w_ = w;
         last_h_ = h;
+
         last_prior_ = prior_box_.forward({h, w});
+        last_prior_ = last_prior_.to(device_);
+
         last_box_scale_ = torch::tensor({w, h, w, h});
+        last_box_scale_ = last_box_scale_.to(device_);
+
         last_lmk_scale_ = torch::tensor({w, h, w, h, w, h, w, h, w, h});
+        last_lmk_scale_ = last_lmk_scale_.to(device_);
     }
-    last_prior_ = last_prior_.to(device_);
-    last_box_scale_ = last_box_scale_.to(device_);
-    last_lmk_scale_ = last_lmk_scale_.to(device_);
 
     loc = loc.squeeze(0);
     forward_conf = forward_conf.squeeze(0);

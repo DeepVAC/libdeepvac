@@ -25,11 +25,13 @@ class SyszuxFaceRetina : public Deepvac{
         SyszuxFaceRetina(SyszuxFaceRetina&&) = default;
         SyszuxFaceRetina& operator=(SyszuxFaceRetina&&) = default;
         virtual ~SyszuxFaceRetina() = default;
+        void initParameter(std::string device);
         void setTopK(int top_k);
         void setKeepTopK(int keep_top_k);
         void setConfThreshold(float confidence_threshold);
         void setNMSThreshold(float nms_threshold);
         void setMaxHW(int max_hw);
+        void setGapThreshold(float gap_threshold);
     public:
         std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> process(cv::Mat frame);
     
@@ -47,5 +49,6 @@ class SyszuxFaceRetina : public Deepvac{
         torch::Tensor last_prior_;
         torch::Tensor last_box_scale_;
         torch::Tensor last_lmk_scale_;
+        float gap_threshold_;
 };
 } //namespace deepvac
