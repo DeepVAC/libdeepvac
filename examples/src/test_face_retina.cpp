@@ -24,6 +24,7 @@ int main(int argc, const char* argv[]) {
     }
     auto mat_out = mat_opt.value();
     auto detect_out_opt = face_detect.process(mat_out);
+
     if(!detect_out_opt){
         throw std::runtime_error("no face detected");
     }

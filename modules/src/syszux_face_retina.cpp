@@ -13,11 +13,54 @@
 
 namespace deepvac{
 
-SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac(path, device),
-    prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
+SyszuxFaceRetina::SyszuxFaceRetina(std::string path, std::string device):Deepvac(path, device), prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){
+    initParameter(device);
+}
 
-SyszuxFaceRetina::SyszuxFaceRetina(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device),
-    prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){}
+SyszuxFaceRetina::SyszuxFaceRetina(std::vector<unsigned char>&& buffer, std::string device):Deepvac(std::move(buffer), device), prior_box_({{16,32},{64,128},{256,512}}, {8,16,32}){
+    initParameter(device);
+}
+
+void SyszuxFaceRetina::initParameter(std::string device){
+    variances_tensor_ = torch::tensor({0.1, 0.2}).to(device);
+
+    setTopK(50);
+    setKeepTopK(50);
+    setConfThreshold(0.4);
+    setNMSThreshold(0.4);
+    setMaxHW(2000);
+    setGapThreshold(0.1);
+
+    last_w_ = 0;
+    last_h_ = 0;
+    last_prior_ = torch::ones({1, 4});
+    last_box_scale_ = torch::ones({1, 4});
+    last_lmk_scale_ = torch::ones({1, 10});
+}
+
+void SyszuxFaceRetina::setTopK(int top_k){
+    top_k_ = top_k;
+}
+
+void SyszuxFaceRetina::setKeepTopK(int keep_top_k){
+    keep_top_k_ = keep_top_k;
+}
+
+void SyszuxFaceRetina::setConfThreshold(float confidence_threshold){
+    confidence_threshold_ = confidence_threshold;
+}
+
+void SyszuxFaceRetina::setNMSThreshold(float nms_threshold){
+    nms_threshold_ = nms_threshold;
+}
+
+void SyszuxFaceRetina::setMaxHW(int max_hw){
+    max_hw_ = max_hw;
+}
+
+void SyszuxFaceRetina::setGapThreshold(float gap_threshold){
+    gap_threshold_ = gap_threshold;
+}
 
 std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> SyszuxFaceRetina::process(cv::Mat frame){
     GEMFIELD_SI;
@@ -26,9 +69,8 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     int w = frame.cols;
     int c = frame.channels();
     int max_edge = std::max(h, w);
-    int max_hw = 2000;
-    if(max_edge > max_hw){
-        cv::resize(frame, frame, cv::Size(int(w*max_hw/max_edge), int(h*max_hw/max_edge)));
+    if(max_edge > max_hw_){
+        cv::resize(frame, frame, cv::Size(int(w*max_hw_/max_edge), int(h*max_hw_/max_edge)));
         h = frame.rows;
         w = frame.cols;
     }
@@ -46,52 +88,57 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     auto forward_conf = output[1].toTensor();
     auto landms = output[2].toTensor();
     //gemfield, prepare output
-    torch::Tensor prior_output = prior_box_.forward({frame.rows, frame.cols});
-    prior_output = prior_output.to(device_);
+    if ( std::abs(h-last_h_)<=gap_threshold_*last_h_ and std::abs(w-last_w_)<=gap_threshold_*last_w_) {
+        if ( h!=last_h_ or w!=last_w_ ) {
+            cv::resize(frame, frame, cv::Size(last_w_, last_h_));
+        }
+    } else {
+        last_w_ = w;
+        last_h_ = h;
 
-    loc = loc.squeeze(0).to(device_);
-    forward_conf = forward_conf.squeeze(0).to(device_);
-    landms = landms.squeeze(0).to(device_);
+        last_prior_ = prior_box_.forward({h, w});
+        last_prior_ = last_prior_.to(device_);
+
+        last_box_scale_ = torch::tensor({w, h, w, h});
+        last_box_scale_ = last_box_scale_.to(device_);
+
+        last_lmk_scale_ = torch::tensor({w, h, w, h, w, h, w, h, w, h});
+        last_lmk_scale_ = last_lmk_scale_.to(device_);
+    }
+
+    loc = loc.squeeze(0);
+    forward_conf = forward_conf.squeeze(0);
+    landms = landms.squeeze(0);
 
     float resize = 1.;
 
-    torch::Tensor variances_tensor = torch::tensor({0.1, 0.2});
-    variances_tensor = variances_tensor.to(device_);
     //gemfield
-    torch::Tensor scale = torch::tensor({w, h, w, h});
-    scale = scale.to(device_);
-    torch::Tensor boxes = gemfield_org::getDecodeBox(prior_output, variances_tensor,loc);
-    boxes = torch::div(torch::mul(boxes, scale), resize);
+    torch::Tensor boxes = gemfield_org::getDecodeBox(last_prior_, variances_tensor_, loc);
+    boxes = torch::div(torch::mul(boxes, last_box_scale_), resize);
 
-    gemfield_org::decodeLandmark(prior_output, variances_tensor, landms);
-    torch::Tensor scale1 = torch::tensor({w, h, w, h, w, h, w, h, w, h});
-    scale1 = scale1.to(device_);
-    landms = torch::div(torch::mul(landms, scale1), resize);
+    gemfield_org::decodeLandmark(last_prior_, variances_tensor_, landms);
+    landms = torch::div(torch::mul(landms, last_lmk_scale_), resize);
 
     torch::Tensor scores = forward_conf.slice(1, 1, 2);
-    float confidence_threshold = 0.4;
-    std::vector<torch::Tensor> index = torch::where(scores>confidence_threshold);
+    std::vector<torch::Tensor> index = torch::where(scores>confidence_threshold_);
     boxes = boxes.index({index[0]});
     landms = landms.index({index[0]});
     scores = scores.index({index[0]});
 
-    int top_k = 50;
     std::tuple<torch::Tensor,torch::Tensor> sort_ret = torch::sort(scores, 0, 1);
     torch::Tensor idx = std::get<1>(sort_ret).squeeze(1);
-    idx = idx.slice(0, 0, top_k);
+    idx = idx.slice(0, 0, top_k_);
 
     boxes = boxes.index({idx});
     landms = landms.index({idx});
     scores = scores.index({idx});
 
     torch::Tensor dets = torch::cat({boxes, scores}, 1);
-    float nms_threshold = 0.4;
     torch::Tensor keep;
-    keep = gemfield_org::nms(dets, nms_threshold);
+    keep = gemfield_org::nms(dets, nms_threshold_);
 
     // keep top-K faster NMS
-    int keep_top_k = 50;
-    keep = keep.slice(0, 0, keep_top_k);
+    keep = keep.slice(0, 0, keep_top_k_);
     dets = dets.index({keep});
     landms = landms.index({keep});
     
@@ -117,8 +164,6 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     cv::Mat dets_mat(dets.size(0), dets.size(1), CV_32F);
     std::memcpy((void *) dets_mat.data, dets.data_ptr(), torch::elementSize(torch::kF32) * dets.numel());
     
-    
-
     for(int i=0; i<landms_mat.rows; i++) {
         auto landmark = landms_mat.row(i);
         auto [dst_img, dst_points] = align_face_(frame, landmark);
@@ -127,6 +172,7 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
         dst_img.convertTo(dst_img, CV_32FC3);
         faces_info.emplace_back(std::tuple(dst_img, bbox_vec, dst_points));
     }
+
     return faces_info;
 }
 } //namespace deepvac
