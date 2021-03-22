@@ -71,26 +71,21 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     auto forward_conf = output[1].toTensor();
     auto landms = output[2].toTensor();
     //gemfield, prepare output
-    torch::Tensor prior_output;
-    
     if ( std::abs(h-last_h_)<=0.2*last_h_ and std::abs(w-last_w_)<=0.2*last_w_) {
         if ( h!=last_h_ or w!=last_w_ ) {
             cv::resize(frame, frame, cv::Size(last_w_, last_h_));
-            h = frame.rows;
-            w = frame.cols;
         }
     }
     else {
+        last_w_ = w;
+        last_h_ = h;
         last_prior_ = prior_box_.forward({h, w});
-        last_prior_ = last_prior_.to(device_);
         last_box_scale_ = torch::tensor({w, h, w, h});
-        last_box_scale_ = last_box_scale_.to(device_);
         last_lmk_scale_ = torch::tensor({w, h, w, h, w, h, w, h, w, h});
-        last_lmk_scale_ = last_lmk_scale_.to(device_);
     }
-    //prior_output = last_prior_;
-    //box_scale = last_box_scale_;
-    //lmk_scale = last_lmk_scale_;
+    last_prior_ = last_prior_.to(device_);
+    last_box_scale_ = last_box_scale_.to(device_);
+    last_lmk_scale_ = last_lmk_scale_.to(device_);
 
     loc = loc.squeeze(0);
     forward_conf = forward_conf.squeeze(0);
@@ -158,6 +153,7 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
         dst_img.convertTo(dst_img, CV_32FC3);
         faces_info.emplace_back(std::tuple(dst_img, bbox_vec, dst_points));
     }
+
     return faces_info;
 }
 } //namespace deepvac
