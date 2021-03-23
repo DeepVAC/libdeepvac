@@ -14,10 +14,11 @@ project(deepvac
 option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
 option(BUILD_STATIC "build static libdeepvac library" ON)
 option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
-option(USE_STATIC_LIBTORCH "use LibTorch static library" ON)
+option(USE_LOADER "build loader which needs c++17" OFF)
 option(USE_CUDA "Use CUDA" OFF)
 option(BUILD_ALL_EXAMPLES "build all examples" OFF)
-option(USE_LOADER "build loader which needs c++17" OFF)
+#turn off USE_STATIC_LIBTORCH is not tested.
+option(USE_STATIC_LIBTORCH "use LibTorch static library" ON)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
@@ -95,21 +96,21 @@ find_package(Eigen3 QUIET)
 #libtorch static stuff
 if(USE_STATIC_LIBTORCH)
     message(STATUS "will find libtorch static library since USE_STATIC_LIBTORCH is ON")
-    list(APPEND TORCH_CUDA_STATIC_LIBRARIES ${TORCH_LIBRARIES})
+    list(APPEND LIBTORCH_CUDA_LIBRARIES ${TORCH_LIBRARIES})
     if(USE_MKL)
-        list(APPEND TORCH_CUDA_STATIC_LIBRARIES ${MKL_LIBRARIES})
-        list(APPEND TORCH_CUDA_STATIC_LIBRARIES "-lpthread")
-        list(APPEND TORCH_CUDA_STATIC_LIBRARIES "-lm")
-        list(APPEND TORCH_CUDA_STATIC_LIBRARIES "-ldl")
+        list(APPEND LIBTORCH_CUDA_LIBRARIES ${MKL_LIBRARIES})
+        list(APPEND LIBTORCH_CUDA_LIBRARIES "-lpthread")
+        list(APPEND LIBTORCH_CUDA_LIBRARIES "-lm")
+        list(APPEND LIBTORCH_CUDA_LIBRARIES "-ldl")
     endif()
 
-    foreach(GEM ${TORCH_CUDA_STATIC_LIBRARIES})
+    foreach(GEM ${LIBTORCH_CUDA_LIBRARIES})
         string(FIND ${GEM} "_cuda.a" GEM_FIELD)
         if(NOT ${GEM_FIELD} EQUAL "-1")
-            message(STATUS "found cuda library need to be removed from TORCH_CPU_STATIC_LIBRARIES: ${GEM}")
+            message(STATUS "found cuda library need to be removed from LIBTORCH_CPU_LIBRARIES: ${GEM}")
             continue()
         endif()
-        list(APPEND TORCH_CPU_STATIC_LIBRARIES ${GEM})
+        list(APPEND LIBTORCH_CPU_LIBRARIES ${GEM})
     endforeach()
 
     if(USE_CUDA)
@@ -127,7 +128,7 @@ if(USE_STATIC_LIBTORCH)
             HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
             PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
 
-        list(APPEND CUDA_LIBRARIES_ALL
+        list(APPEND LIBCUDA_LIBRARIES
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcurand.so
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcusparse.so
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcufft.so
@@ -138,13 +139,15 @@ if(USE_STATIC_LIBTORCH)
             ${CUDNN_LIBRARY}
             ${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcudart.so
         )
-        message(STATUS "CUDA_LIBRARIES_ALL: ${CUDA_LIBRARIES_ALL}")
-        set(TORCH_STATIC_LIBRARIES ${TORCH_CUDA_STATIC_LIBRARIES})
+        message(STATUS "LIBCUDA_LIBRARIES: ${LIBCUDA_LIBRARIES}")
+        set(LIBTORCH_DEFAULT_LIBRARIES ${LIBTORCH_CUDA_LIBRARIES})
     else()
-        set(TORCH_STATIC_LIBRARIES ${TORCH_CPU_STATIC_LIBRARIES})
+        set(LIBTORCH_DEFAULT_LIBRARIES ${LIBTORCH_CPU_LIBRARIES})
     endif()
-    message(STATUS "TORCH_CUDA_STATIC_LIBRARIES: ${TORCH_CUDA_STATIC_LIBRARIES}")
-    message(STATUS "TORCH_CPU_STATIC_LIBRARIES: ${TORCH_CPU_STATIC_LIBRARIES}")
+    message(STATUS "LIBTORCH_CUDA_LIBRARIES: ${LIBTORCH_CUDA_LIBRARIES}")
+    message(STATUS "LIBTORCH_CPU_LIBRARIES: ${LIBTORCH_CPU_LIBRARIES}")
+else()
+    message(FATAL "Turn off USE_STATIC_LIBTORCH is not tested yet.")
 endif()
 
 macro (add_syszux_sources)
@@ -183,6 +186,21 @@ message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "TORCH_LIBRARIES: ${TORCH_LIBRARIES}")
 message(STATUS "TORCH_HEADER: ${TORCH_INCLUDE_DIRS}")
 
+set(DEEPVAC_LIBRARIES deepvac)
+set(DEEPVAC_LIBTORCH_CPU_LIBRARIES deepvac ${LIBTORCH_CPU_LIBRARIES})
+set(DEEPVAC_LIBTORCH_CPU_CV_LIBRARIES ${DEEPVAC_LIBTORCH_CPU_LIBRARIES} ${OpenCV_LIBS})
+set(DEEPVAC_LIBTORCH_CUDA_LIBRARIES deepvac ${LIBTORCH_CUDA_LIBRARIES})
+set(DEEPVAC_LIBTORCH_CUDA_LIBCUDA_LIBRARIES ${DEEPVAC_LIBTORCH_CUDA_LIBRARIES} ${LIBCUDA_LIBRARIES})
+set(DEEPVAC_LIBTORCH_CUDA_LIBCUDA_CV_LIBRARIES ${DEEPVAC_LIBTORCH_CUDA_LIBCUDA_LIBRARIES} ${OpenCV_LIBS})
+
+message(STATUS "DEEPVAC_LIBRARIES: ${DEEPVAC_LIBRARIES}")
+message(STATUS "DEEPVAC_LIBTORCH_CPU_LIBRARIES: ${DEEPVAC_LIBTORCH_CPU_LIBRARIES}")
+message(STATUS "DEEPVAC_LIBTORCH_CPU_CV_LIBRARIES: ${DEEPVAC_LIBTORCH_CPU_CV_LIBRARIES}")
+message(STATUS "DEEPVAC_LIBTORCH_CUDA_LIBRARIES: ${DEEPVAC_LIBTORCH_CUDA_LIBRARIES}")
+message(STATUS "DEEPVAC_LIBTORCH_CUDA_LIBCUDA_LIBRARIES: ${DEEPVAC_LIBTORCH_CUDA_LIBCUDA_LIBRARIES}")
+message(STATUS "DEEPVAC_LIBTORCH_CUDA_LIBCUDA_CV_LIBRARIES: ${DEEPVAC_LIBTORCH_CUDA_LIBCUDA_CV_LIBRARIES}")
+message(STATUS "LIBTORCH_DEFAULT_LIBRARIES: ${LIBTORCH_DEFAULT_LIBRARIES}")
+
 # add subdiretories
 add_subdirectory(utils)
 if(USE_LOADER)
@@ -200,7 +218,7 @@ else()
     message(STATUS "will build libdeepvac shared library")
     add_library(deepvac SHARED ${SRC_LIST})
     if(USE_STATIC_LIBTORCH)
-        target_link_libraries(deepvac PRIVATE ${TORCH_STATIC_LIBRARIES} ${CUDA_LIBRARIES_ALL} ${OpenCV_LIBS})
+        target_link_libraries(deepvac PRIVATE ${LIBTORCH_DEFAULT_LIBRARIES} ${LIBCUDA_LIBRARIES} ${OpenCV_LIBS})
     endif()
 endif()
 
