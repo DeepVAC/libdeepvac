@@ -64,11 +64,17 @@ libdeepvac的编译依赖C++14编译器、CMake、opencv、LibTorch。
 - 未来几个月，该镜像还将包含LibTorch4DeepVAC (Android) 1.8.0；
 
 
-# 编译
+# 编译开关
 如果要开始编译libdeepvac，需要先熟悉如下几个编译开关的作用：
-- USE_MKL，仅在USE_STATIC_LIBTORCH=ON的情况下生效，是否使用MKL来作为BLAS/LAPACK后端；
-- USE_CUDA，仅在USE_STATIC_LIBTORCH=ON的情况下生效，是否使用CUDA；
-- USE_LOADER，是否使用图片装载器，需要C++17编译器。
+- BUILD_STATIC，默认打开。是否静态编译libdeepvac库；
+- USE_MKL，默认关闭。是否使用MKL来作为BLAS/LAPACK后端；
+- USE_CUDA，默认关闭。是否使用CUDA；
+- USE_NUMA，默认关闭。是否使用libnuma库（仅在开启CUDA后有意义）；
+- USE_TENSORRT，默认关闭。是否使用TensorRT；
+- USE_LOADER，默认关闭。是否使用图片装载器，需要C++17编译器；
+- GARRULOUS_GEMFIELD，默认关闭。是否打开调试log；
+- BUILD_ALL_EXAMPLES，默认关闭。是否编译所有的examples；
+- SYSTEM_LAPACK_LIBRARIES，默认为空。指定额外的BLAS/LAPACK库。
 
 CMake命令如下：
 
@@ -77,12 +83,49 @@ CMake命令如下：
 mkdir build
 cd build
 
+#比如在X86_64 GPU服务器上，使用CUDA，且用MKL作为BLAS/LAPACK库
 cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch;/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install .. 
+
+#比如在Nvidia Jetson Xavier NX上，使用TensorRT，且用系统的blas和lapack库
+cmake -DUSE_CUDA=ON -DUSE_NUMA=ON -DUSE_TENSORRT=ON -DSYSTEM_LAPACK_LIBRARIES="-lblas -llapack" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/home/gemfield/github/opencv4deepvac/;/home/gemfield/github/libtorch" -DCMAKE_INSTALL_PREFIX=../install ..
+
 
 cmake --build . --config Release
 make install
 ```
 
+# 使用libdeepvac预编译库
+如何在自己的项目中使用libdeepvac预编译库呢？
+## 1. 添加find_package(Deepvac REQUIRED)
+在自己项目的CMakeLists.txt中，添加
+```
+find_package(Deepvac REQUIRED)
+```
+
+## 2. 使用libdeepvac提供的头文件cmake变量
+在自己项目的CMakeLists.txt中，你可以使用如下cmake变量：
+- DEEPVAC_INCLUDE_DIRS：libdeepvac库的头文件目录；
+- DEEPVAC_LIBTORCH_INCLUDE_DIRS：libtorch库的头文件目录；
+- DEEPVAC_TENSORRT_INCLUDE_DIRS：TensorRT库的头文件目录；
+- DEEPVAC_CV_INCLUDE_DIRS：OpenCV库的头文件目录；
+
+## 3. 使用libdeepvac提供的库文件cmake变量
+- DEEPVAC_LIBRARIES：libdeepvac库；
+- DEEPVAC_LIBTORCH_CPU_LIBRARIES：libtorch cpu版库；
+- DEEPVAC_LIBTORCH_CUDA_LIBRARIES：libtorch cuda版库；
+- DEEPVAC_LIBTORCH_DEFAULT_LIBRARIES：libtorch默认版库（编译时用的cpu还是cuda）；
+- DEEPVAC_LIBCUDA_LIBRARIES：Nvidia cuda runtime库；
+- DEEPVAC_TENSORRT_LIBRARIES：Nvidia TensorRT runtime库；
+- DEEPVAC_CV_LIBRARIES：OpenCV库；
+
+使用举例：
+```
+#头文件
+target_include_directories(${your_target} "${DEEPVAC_LIBTORCH_INCLUDE_DIRS};${DEEPVAC_TENSORRT_INCLUDE_DIRS};${CMAKE_CURRENT_SOURCE_DIR}/include>")
+
+#库文件
+target_link_libraries( ${your_target} ${DEEPVAC_LIBRARIES} ${DEEPVAC_LIBTORCH_CUDA_LIBRARIES} ${DEEPVAC_LIBCUDA_LIBRARIES} ${DEEPVAC_CV_LIBRARIES})
+```
 # 演示
 [SYSZUX-FACE](https://github.com/CivilNet/SYSZUX-FACE)基于本项目实现了人脸检测功能。
 

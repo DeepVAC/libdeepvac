@@ -21,6 +21,7 @@ option(BUILD_ALL_EXAMPLES "build all examples" OFF)
 #turn off USE_STATIC_LIBTORCH is not tested.
 option(USE_STATIC_LIBTORCH "use LibTorch static library" ON)
 #You should customize the blas dependencies.
+message(STATUS "SYSTEM_LAPACK_LIBRARIES: ${SYSTEM_LAPACK_LIBRARIES}")
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
