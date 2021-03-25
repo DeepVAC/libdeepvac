@@ -74,19 +74,6 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
         h = frame.rows;
         w = frame.cols;
     }
-
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NO_NORMALIZE, gemfield_org::MEAN_STD_FROM_FACE);
-
-    if(!input_tensor_opt){
-        return std::nullopt;
-    }
-    auto input_tensor = input_tensor_opt.value();
-    //forward
-    auto output = forward<std::vector<c10::IValue>>(input_tensor);
-    //Nx4    //Nx2    //Nx10
-    auto loc = output[0].toTensor();
-    auto forward_conf = output[1].toTensor();
-    auto landms = output[2].toTensor();
     //gemfield, prepare output
     if ( std::abs(h-last_h_)<=gap_threshold_*last_h_ and std::abs(w-last_w_)<=gap_threshold_*last_w_) {
         if ( h!=last_h_ or w!=last_w_ ) {
@@ -105,6 +92,19 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
         last_lmk_scale_ = torch::tensor({w, h, w, h, w, h, w, h, w, h});
         last_lmk_scale_ = last_lmk_scale_.to(device_);
     }
+
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NO_NORMALIZE, gemfield_org::MEAN_STD_FROM_FACE);
+
+    if(!input_tensor_opt){
+        return std::nullopt;
+    }
+    auto input_tensor = input_tensor_opt.value();
+    //forward
+    auto output = forward<std::vector<c10::IValue>>(input_tensor);
+    //Nx4    //Nx2    //Nx10
+    auto loc = output[0].toTensor();
+    auto forward_conf = output[1].toTensor();
+    auto landms = output[2].toTensor();
 
     loc = loc.squeeze(0);
     forward_conf = forward_conf.squeeze(0);
