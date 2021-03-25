@@ -9,10 +9,13 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
+#include <cstring>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/err.h>
 #include <openssl/sha.h>
+#include <openssl/md5.h>
 #include "gemfield.h"
 
 namespace gemfield_org{
@@ -33,6 +36,25 @@ namespace gemfield_org{
             throw std::runtime_error(msg);
         }
         return vector_bytes;
+    }
+
+    inline std::string md5(std::string& data){
+        unsigned char md[MD5_DIGEST_LENGTH];
+        unsigned long data_len = data.size();
+        MD5(reinterpret_cast<const unsigned char*>(data.c_str()), data_len, md);
+        
+        char result[MD5_DIGEST_LENGTH * 2 + 1];
+        memset(result, 0, sizeof result);
+        for (int i = 0; i < MD5_DIGEST_LENGTH; i++){
+            sprintf(&result[i*2], "%02x", md[i]);
+        }
+        
+        return std::string(result);
+    }
+
+    inline std::string md5(const char* data){
+        std::string tmp(data);
+        return md5(tmp);
     }
 
     using DeepvacKeyBytes = std::array<unsigned char, SHA256_DIGEST_LENGTH>;
