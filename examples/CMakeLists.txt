@@ -3,8 +3,6 @@
 # You may not use this file except in compliance with the License.
 
 file(GLOB EXAMPLES_LIST src/*.cpp)
-message(STATUS "found EXAMPLES_LIST: " ${EXAMPLES_LIST})
-
 macro (add_syszux_flags)
     foreach (_src ${ARGN})
         list (APPEND FLAGS_FILE_LIST "${_src}")
@@ -45,6 +43,13 @@ endforeach()
 if(BUILD_ALL_EXAMPLES)
     set(EXAMPLES_LIST_MIN ${EXAMPLES_LIST})
 endif()
+
+if(NOT USE_TENSORRT)
+    list(FILTER EXAMPLES_LIST_MIN EXCLUDE REGEX ".*_nv.cpp$")
+endif()
+
+message(STATUS "found EXAMPLES_SRC_LIST: " ${EXAMPLES_LIST_MIN})
+
 foreach( testsyszuxfile ${EXAMPLES_LIST_MIN} )
     get_filename_component(testfile "${testsyszuxfile}" NAME)
     message(STATUS "Add test binary: ${testfile}")
@@ -56,7 +61,11 @@ foreach( testsyszuxfile ${EXAMPLES_LIST_MIN} )
         target_link_options(${testname} PRIVATE -fopenmp)
         if(BUILD_STATIC)
             if(USE_CUDA)
-                target_link_libraries( ${testname} ${DEEPVAC_LIBRARIES} ${DEEPVAC_LIBTORCH_CUDA_LIBRARIES} ${DEEPVAC_LIBCUDA_LIBRARIES} ${DEEPVAC_CV_LIBRARIES})
+                if(USE_TENSORRT)
+                    target_link_libraries( ${testname} ${DEEPVAC_LIBRARIES} ${DEEPVAC_LIBTORCH_CUDA_LIBRARIES} ${DEEPVAC_LIBCUDA_LIBRARIES} ${DEEPVAC_CV_LIBRARIES} ${DEEPVAC_TENSORRT_LIBRARIES})
+                else()
+                    target_link_libraries( ${testname} ${DEEPVAC_LIBRARIES} ${DEEPVAC_LIBTORCH_CUDA_LIBRARIES} ${DEEPVAC_LIBCUDA_LIBRARIES} ${DEEPVAC_CV_LIBRARIES})
+                endif()
             else()
                 target_link_libraries( ${testname} ${DEEPVAC_LIBRARIES} ${DEEPVAC_LIBTORCH_CPU_LIBRARIES} ${DEEPVAC_CV_LIBRARIES})
             endif()
@@ -66,9 +75,10 @@ foreach( testsyszuxfile ${EXAMPLES_LIST_MIN} )
     else()
         target_link_libraries( ${testname} deepvac ${TORCH_LIBRARIES} ${DEEPVAC_CV_LIBRARIES})
     endif()
-    target_include_directories(${testname} PUBLIC 
+
+    target_include_directories(${testname} PUBLIC
         "$<INSTALL_INTERFACE:include/deepvac>"   
-        "$<BUILD_INTERFACE:${DEEPVAC_LIBTORCH_INCLUDE_DIRS};${DEEPVAC_TENSORRT_INCLUDE_DIRS};${CMAKE_CURRENT_SOURCE_DIR}/include>"
+        "$<BUILD_INTERFACE:${DEEPVAC_LIBTORCH_INCLUDE_DIRS};${DEEPVAC_TENSORRT_INCLUDE_DIRS};${CUDA_INCLUDE_DIRS};${CMAKE_CURRENT_SOURCE_DIR}/include>"
     )
     #install(TARGETS ${testname} DESTINATION "${examples_dest}")
 endforeach( testsyszuxfile ${EXAMPLES_LIST_MIN} )

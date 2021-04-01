@@ -12,6 +12,7 @@
 namespace gemfield_org{
     class PriorBox{
         public:
+            PriorBox() = default;
             PriorBox(std::vector<std::vector<int>>&& min_sizes, std::vector<int>&& steps, bool clip = false):
                 min_sizes_(min_sizes),steps_(steps),clip_(clip){}
             ~PriorBox() = default;

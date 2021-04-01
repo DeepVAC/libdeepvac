@@ -18,19 +18,20 @@ namespace deepvac {
 class SYSZUX_EXPORT Deepvac{
     public:
         Deepvac() = default;
+        explicit Deepvac(const char* model_path, std::string device);
+        explicit Deepvac(std::string model_path, std::string device):Deepvac(model_path.c_str(), device){}
+        explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device);
         Deepvac(const Deepvac& rhs);
         Deepvac& operator=(const Deepvac& rhs);
         Deepvac(Deepvac&&) = default;
         Deepvac& operator=(Deepvac&&) = default;
         virtual ~Deepvac() = default;
-        explicit Deepvac(const char* model_path, std::string device);
-        explicit Deepvac(std::string model_path, std::string device):Deepvac(model_path.c_str(), device){}
-        explicit Deepvac(std::vector<unsigned char>&& buffer, std::string device);
+
     public:
         void setDevice(std::string device){device_ = device;}
         void setModel(std::string model_path);
         std::string getDevice(){return device_;}
-    public:
+        
         template<typename T = at::Tensor>
         T forward(at::Tensor& t);
 
