@@ -20,6 +20,7 @@ option(USE_TENSORRT "Use TensorRT" OFF)
 option(BUILD_ALL_EXAMPLES "build all examples" OFF)
 #turn off USE_STATIC_LIBTORCH is not tested.
 option(USE_STATIC_LIBTORCH "use LibTorch static library" ON)
+option(USE_MAGMA "use magma" ON)
 #You should customize the blas dependencies.
 message(STATUS "SYSTEM_LAPACK_LIBRARIES: ${SYSTEM_LAPACK_LIBRARIES}")
 
@@ -116,6 +117,16 @@ endif()
 if(USE_STATIC_LIBTORCH)
     message(STATUS "will find libtorch static library since USE_STATIC_LIBTORCH is ON")
     list(APPEND LIBTORCH_CUDA_LIBRARIES ${TORCH_LIBRARIES})
+
+    if(USE_CUDA AND USE_MAGMA)
+        FIND_LIBRARY(MAGMA_LIBRARIES magma HINTS /opt/conda /usr/local/magma PATH_SUFFIXES lib)
+        if(MAGMA_LIBRARIES)
+            list(APPEND LIBTORCH_CUDA_LIBRARIES ${MAGMA_LIBRARIES})
+        else(MAGMA_LIBRARIES)
+            message(FATAL "Cannot find magma, which is required for libdeepvac when USE_CUDA & USE_MAGMA are enabled.")
+        endif(MAGMA_LIBRARIES)
+    endif()
+
     if(USE_MKL)
         list(APPEND LIBTORCH_CUDA_LIBRARIES ${MKL_LIBRARIES})
         list(APPEND LIBTORCH_CUDA_LIBRARIES "-lpthread")
