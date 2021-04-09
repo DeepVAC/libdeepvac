@@ -1,5 +1,3 @@
-#include "syszux_face_reg_nv.h"
-
 #include <cmath>
 #include <fstream>
 #include <iterator>
@@ -7,19 +5,20 @@
 #include <sstream>
 #include "NvInfer.h"
 #include "gemfield.h"
+#include "syszux_face_id_nv.h"
 
 namespace deepvac {
-SyszuxFaceRegNV::SyszuxFaceRegNV(std::string path, std::string device):DeepvacNV(path, device) {
+SyszuxFaceIdNV::SyszuxFaceIdNV(std::string path, std::string device):DeepvacNV(path, device) {
     setBinding(2);
     initBinding();
 }
 
-SyszuxFaceRegNV::SyszuxFaceRegNV(std::vector<unsigned char>&& buffer, std::string device):DeepvacNV(std::move(buffer), device){
+SyszuxFaceIdNV::SyszuxFaceIdNV(std::vector<unsigned char>&& buffer, std::string device):DeepvacNV(std::move(buffer), device){
     setBinding(2);
     initBinding();
 }
 
-void SyszuxFaceRegNV::initBinding() {
+void SyszuxFaceIdNV::initBinding() {
     datas_[0].hostBuffer.resize(nvinfer1::Dims4{1, 3, 112, 112});
     datas_[0].deviceBuffer.resize(nvinfer1::Dims4{1, 3, 112, 112});
     datas_[1].hostBuffer.resize(nvinfer1::Dims2{1, 512});
@@ -27,7 +26,7 @@ void SyszuxFaceRegNV::initBinding() {
 }
 
 
-void SyszuxFaceRegNV::loadDB(std::string path){
+void SyszuxFaceIdNV::loadDB(std::string path){
     try{
         std::ifstream inputstream(path + ".id");
         std::copy(std::istream_iterator<std::string>(inputstream),std::istream_iterator<std::string>(),std::back_inserter(id_vec_));
@@ -42,11 +41,11 @@ void SyszuxFaceRegNV::loadDB(std::string path){
     GEMFIELD_I(msg.c_str());
 }
 
-int SyszuxFaceRegNV::size(){
+int SyszuxFaceIdNV::size(){
     return id_vec_.size();
 }
 
-int SyszuxFaceRegNV::add(cv::Mat& frame, std::string name){
+int SyszuxFaceIdNV::add(cv::Mat& frame, std::string name){
     cv::Mat dst;
     frame.convertTo(dst, CV_32F, 1.0 / 127.5, -1.0);                                                                                      
     float* input_data = (float*)dst.data;                                                                                               
@@ -66,11 +65,11 @@ int SyszuxFaceRegNV::add(cv::Mat& frame, std::string name){
     return id2commit_vec_.size() - 1;
 }
 
-int SyszuxFaceRegNV::cachedSize(){
+int SyszuxFaceIdNV::cachedSize(){
     return id2commit_vec_.size();
 }
 
-void SyszuxFaceRegNV::commit(std::string path_prefix){
+void SyszuxFaceIdNV::commit(std::string path_prefix){
     torch::Tensor db = torch::cat(db2commit_vec_, 0);
     std::stringstream feature_size;
     feature_size << db.sizes();
@@ -88,7 +87,7 @@ void SyszuxFaceRegNV::commit(std::string path_prefix){
 
 
 
-std::optional<std::vector<std::tuple<int, std::string, float>>> SyszuxFaceRegNV::process(std::vector<cv::Mat>& frames) {
+std::optional<std::vector<std::tuple<int, std::string, float>>> SyszuxFaceIdNV::process(std::vector<cv::Mat>& frames) {
     if (frames.size()==0) {
         return std::nullopt;
     }

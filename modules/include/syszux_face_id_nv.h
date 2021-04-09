@@ -8,15 +8,15 @@
 #include "syszux_img2tensor.h"
 
 namespace deepvac{
-class SyszuxFaceRegNV : public DeepvacNV{
+class SyszuxFaceIdNV : public DeepvacNV{
     public:
-        SyszuxFaceRegNV(std::string path, std::string device = "cpu");
-        SyszuxFaceRegNV(std::vector<unsigned char>&& buffer, std::string device = "cpu");
-        SyszuxFaceRegNV(const SyszuxFaceRegNV&) = delete;
-        SyszuxFaceRegNV& operator=(const SyszuxFaceRegNV&) = delete;
-        SyszuxFaceRegNV(SyszuxFaceRegNV&&) = default;
-        SyszuxFaceRegNV& operator=(SyszuxFaceRegNV&&) = default;
-        virtual ~SyszuxFaceRegNV() = default;
+        SyszuxFaceIdNV(std::string path, std::string device = "cpu");
+        SyszuxFaceIdNV(std::vector<unsigned char>&& buffer, std::string device = "cpu");
+        SyszuxFaceIdNV(const SyszuxFaceIdNV&) = delete;
+        SyszuxFaceIdNV& operator=(const SyszuxFaceIdNV&) = delete;
+        SyszuxFaceIdNV(SyszuxFaceIdNV&&) = default;
+        SyszuxFaceIdNV& operator=(SyszuxFaceIdNV&&) = default;
+        virtual ~SyszuxFaceIdNV() = default;
         virtual std::optional<std::vector<std::tuple<int, std::string, float>>> process(std::vector<cv::Mat>& frames);
         void initBinding();
 
