@@ -57,44 +57,67 @@ libdeepvac支持以下目标平台的编译：
 
 # 项目依赖
 libdeepvac的编译依赖C++14编译器、CMake、opencv、LibTorch。  
-最简便、高效的方式就是使用我们提供的DeepVAC开发时[Docker镜像](https://github.com/DeepVAC/deepvac#2-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87)。
+最简便、高效的方式就是使用我们提供的MLab HomePod(https://github.com/DeepVAC/MLab#1-%E9%83%A8%E7%BD%B2)。使用MLab HomePod也是我们推荐的方式。
 
-- 该镜像内置的LibTorch版本为：[LibTorch4DeepVAC (x86-64 Linux) 1.8.0](https://github.com/CivilNet/libtorch/releases/download/1.8.0/libtorch.tar.gz)；
-- 你也可以使用[PyTorch官方](https://pytorch.org/)LibTorch版本替换内置的LibTorch版本；
-- 未来几个月，该镜像还将包含LibTorch4DeepVAC (Android) 1.8.0；
+# 如何编译libdeepvac
+libdeepvac基于CMake进行构建。
+
+## 编译开关
+如果要开始编译libdeepvac，需要先熟悉如下几个CMake选项的作用：
+|CMake选项|默认值|常用值| 作用|备注|
+|--------|-----|-----|-----|---|
+|BUILD_STATIC|ON|ON/OFF| ON：编译静态libdeepvac<br>OFF: 编译动态libdeepvac|OFF时，链接OpenCV静态库会带来hidden symbol问题，此时需链接OpenCV动态库|
+|USE_STATIC_LIBTORCH|ON|ON/OFF|ON: 使用libtorch静态库<br>OFF: 使用libtorch动态库|MLab HomePod中内置有动态库|
+|USE_MKL|OFF|ON/OFF| 是否使用Intel MKL作为LAPACK/BLAS实现|OFF的时候，需要使用SYSTEM_LAPACK_LIBRARIES指定另外的LAPACK/BLAS实现，比如openblas、Eigen等|
+|SYSTEM_LAPACK_LIBRARIES|""|"-lblas -llapack"| USE_MKL关闭后需要指定的LAPACK/BLAS库|在系统路径下安装有相应的开发环境|
+|USE_CUDA|OFF| ON/OFF| 是否使用CUDA|需要CUDA硬件，且系统中已经安装有CUDA ToolKit的开发时|
+|USE_TENSORRT|OFF|ON/OFF|是否使用TensorRT|需要CUDA硬件，且系统中已经安装有TensorRT的开发时|
+|USE_NUMA|OFF|ON/OFF| 是否链接-lnuma库|NA|
+|USE_LOADER|OFF|ON/OFF| 是否使用图片装载器|需要C++17编译器|
+|GARRULOUS_GEMFIELD|OFF|ON/OFF| 是否打开调试log|NA|
+|BUILD_ALL_EXAMPLES|OFF|ON/OFF|是否编译所有的examples |NA|
 
 
-# 编译开关
-如果要开始编译libdeepvac，需要先熟悉如下几个编译开关的作用：
-- BUILD_STATIC，默认打开。是否静态编译libdeepvac库；
-- USE_MKL，默认关闭。是否使用MKL来作为BLAS/LAPACK后端；
-- USE_CUDA，默认关闭。是否使用CUDA；
-- USE_NUMA，默认关闭。是否使用libnuma库（仅在开启CUDA后有意义）；
-- USE_TENSORRT，默认关闭。是否使用TensorRT；
-- USE_LOADER，默认关闭。是否使用图片装载器，需要C++17编译器；
-- GARRULOUS_GEMFIELD，默认关闭。是否打开调试log；
-- BUILD_ALL_EXAMPLES，默认关闭。是否编译所有的examples；
-- SYSTEM_LAPACK_LIBRARIES，默认为空。指定额外的BLAS/LAPACK库。
+## 下载依赖
+假设你使用的是MLab HomePod，那么你只需要下载opencv库、libtorch库：
+- opencv：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/opencv4deepvac.tar.gz
+- libtorch动态库：内置有；
+- libtorch静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/libtorch.tar.gz
 
-CMake命令如下：
+你亦可以在MLab HomePod上自行从源码编译上述的依赖库。
 
+
+## CMake命令
+
+#### 预备工作
 ```bash
 # create build directory
 mkdir build
 cd build
+```
 
-#比如在X86_64 GPU服务器上，使用CUDA，且用MKL作为BLAS/LAPACK库
+#### CMake
+- 在X86_64 GPU服务器上，使用CUDA，使用libtorch静态库，且用MKL作为BLAS/LAPACK库：
+```bash
 cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch;/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install .. 
+```
+- 在X86_64 GPU服务器上，使用CUDA，使用libtorch动态库，且用MKL作为BLAS/LAPACK库：
+```bash
+cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DUSE_STATIC_LIBTORCH=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/public/airlock/opencv4deepvac;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
+```
 
-#比如在Nvidia Jetson Xavier NX上，使用TensorRT，且用系统的blas和lapack库
+- 在Nvidia Jetson Xavier NX上，使用TensorRT，且用系统的blas和lapack库：
+```bash
 cmake -DUSE_CUDA=ON -DUSE_NUMA=ON -DUSE_TENSORRT=ON -DSYSTEM_LAPACK_LIBRARIES="-lblas -llapack" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/home/gemfield/github/opencv4deepvac/;/home/gemfield/github/libtorch" -DCMAKE_INSTALL_PREFIX=../install ..
+```
 
-
+#### 编译
+```bash
 cmake --build . --config Release
 make install
 ```
 
-# 使用libdeepvac预编译库
+# 如何使用libdeepva库
 如何在自己的项目中使用libdeepvac预编译库呢？
 ## 1. 添加find_package(Deepvac REQUIRED)
 在自己项目的CMakeLists.txt中，添加
@@ -128,4 +151,3 @@ target_link_libraries( ${your_target} ${DEEPVAC_LIBRARIES} ${DEEPVAC_LIBTORCH_CU
 ```
 # 演示
 [SYSZUX-FACE](https://github.com/CivilNet/SYSZUX-FACE)基于本项目实现了人脸检测功能。
-
