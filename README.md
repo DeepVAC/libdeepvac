@@ -57,7 +57,7 @@ libdeepvac支持以下目标平台的编译：
 
 # 项目依赖
 libdeepvac的编译依赖C++14编译器、CMake、opencv、LibTorch。  
-最简便、高效的方式就是使用我们提供的MLab HomePod(https://github.com/DeepVAC/MLab#1-%E9%83%A8%E7%BD%B2)。使用MLab HomePod也是我们推荐的方式。
+最简便、高效的方式就是使用我们提供的[MLab HomePod](https://github.com/DeepVAC/MLab#1-%E9%83%A8%E7%BD%B2)。使用MLab HomePod也是我们推荐的方式。
 
 # 如何编译libdeepvac
 libdeepvac基于CMake进行构建。
@@ -67,7 +67,7 @@ libdeepvac基于CMake进行构建。
 |CMake选项|默认值|常用值| 作用|备注|
 |--------|-----|-----|-----|---|
 |BUILD_STATIC|ON|ON/OFF| ON：编译静态libdeepvac<br>OFF: 编译动态libdeepvac|OFF时，链接OpenCV静态库会带来hidden symbol问题，此时需链接OpenCV动态库|
-|USE_STATIC_LIBTORCH|ON|ON/OFF|ON: 使用libtorch静态库<br>OFF: 使用libtorch动态库|MLab HomePod中内置有动态库|
+|USE_STATIC_LIBTORCH|ON|ON/OFF|ON: 使用libtorch静态库<br>OFF: 使用libtorch动态库|MLab HomePod中内置有libtorch动态库|
 |USE_MKL|OFF|ON/OFF| 是否使用Intel MKL作为LAPACK/BLAS实现|OFF的时候，需要使用SYSTEM_LAPACK_LIBRARIES指定另外的LAPACK/BLAS实现，比如openblas、Eigen等|
 |SYSTEM_LAPACK_LIBRARIES|""|"-lblas -llapack"| USE_MKL关闭后需要指定的LAPACK/BLAS库|在系统路径下安装有相应的开发环境|
 |USE_CUDA|OFF| ON/OFF| 是否使用CUDA|需要CUDA硬件，且系统中已经安装有CUDA ToolKit的开发时|
@@ -80,9 +80,10 @@ libdeepvac基于CMake进行构建。
 
 ## 下载依赖
 假设你使用的是MLab HomePod，那么你只需要下载opencv库、libtorch库：
-- opencv：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/opencv4deepvac.tar.gz
-- libtorch动态库：内置有；
-- libtorch静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/libtorch.tar.gz
+- opencv动态库：自行apt下载；
+- opencv静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/opencv4deepvac.tar.gz；
+- libtorch动态库：内置在MLab HomePod的/opt/conda/lib/python3.8/site-packages/torch/目录下；
+- libtorch静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/libtorch.tar.gz；
 
 你亦可以在MLab HomePod上自行从源码编译上述的依赖库。
 
