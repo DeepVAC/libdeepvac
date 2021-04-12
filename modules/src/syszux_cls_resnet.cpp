@@ -33,4 +33,9 @@ std::optional<std::pair<int, float>> SyszuxClsResnet::process(cv::Mat frame){
     std::pair result(index, max_probability);
     return result;
 }
+
+at::Tensor SyszuxClsResnet::process(at::Tensor& t){
+    return forward(t);
+}
+
 } //namespace deepvac

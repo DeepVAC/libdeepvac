@@ -19,6 +19,7 @@ class SyszuxClsResnet : public Deepvac{
         SyszuxClsResnet& operator=(SyszuxClsResnet&&) = default;
         virtual ~SyszuxClsResnet() = default;
         std::optional<std::pair<int, float>> process(cv::Mat frame);
+        at::Tensor process(at::Tensor& t);
         void set(std::vector<int> input_size);
     private:
         std::vector<int> input_size_;
