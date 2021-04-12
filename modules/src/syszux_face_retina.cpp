@@ -52,7 +52,7 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
         last_lmk_scale_ = last_lmk_scale_.to(device_);
     }
 
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NO_NORMALIZE, gemfield_org::MEAN_STD_FROM_FACE);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NO_NORMALIZE, gemfield_org::MEAN_STD_FROM_FACE, device_);
 
     if(!input_tensor_opt){
         return std::nullopt;

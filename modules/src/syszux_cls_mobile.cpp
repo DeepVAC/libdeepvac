@@ -7,7 +7,7 @@
 
 namespace deepvac{
 std::optional<std::pair<int, float>> SyszuxClsMobile::process(cv::Mat frame){
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NORMALIZE_1_1, gemfield_org::NO_MEAN_STD);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NORMALIZE_1_1, gemfield_org::NO_MEAN_STD, device_);
 
     if(!input_tensor_opt){
         return std::nullopt;
@@ -25,7 +25,7 @@ std::optional<std::pair<int, float>> SyszuxClsMobile::process(cv::Mat frame){
 }
 
 std::optional<std::vector<std::pair<int, float>>> SyszuxClsMobile::process(std::vector<cv::Mat> frames){
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(frames, gemfield_org::NORMALIZE_1_1, gemfield_org::NO_MEAN_STD);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(frames, gemfield_org::NORMALIZE_1_1, gemfield_org::NO_MEAN_STD, device_);
 
     if(!input_tensor_opt){
         return std::nullopt;

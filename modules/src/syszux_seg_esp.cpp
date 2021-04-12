@@ -20,7 +20,7 @@ std::optional<cv::Mat> SyszuxSegEsp::process(cv::Mat frame){
     cv::cvtColor(frame, resize_img, cv::COLOR_BGR2RGB);
     cv::resize(resize_img, resize_img, cv::Size(image_size_[0], image_size_[1]), cv::INTER_LINEAR);
 
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET, device_);
 
     if(!input_tensor_opt){
         return std::nullopt;

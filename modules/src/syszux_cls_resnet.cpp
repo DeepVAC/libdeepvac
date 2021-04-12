@@ -16,7 +16,7 @@ std::optional<std::pair<int, float>> SyszuxClsResnet::process(cv::Mat frame){
     cv::cvtColor(input_frame, input_frame, cv::COLOR_BGR2RGB);
     cv::resize(input_frame, input_frame, cv::Size(input_size_[0], input_size_[1]));
 
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(input_frame, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(input_frame, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET, device_);
     if(!input_tensor_opt){
         return std::nullopt;
     }

@@ -7,9 +7,13 @@
 #include <chrono>
 #include <ctime> 
 #include <iostream>
+#include "ATen/Device.h"
 #include "deepvac.h"
 #include "syszux_stream_buffer.h"
-
+#ifdef GARRULOUS_GEMFIELD
+#include <c10/cuda/CUDAStream.h>
+#include <ATen/cuda/CUDAContext.h>
+#endif
 namespace deepvac {
 
 Deepvac::Deepvac(const char* model_path, std::string device){
@@ -93,8 +97,17 @@ T Deepvac::forward(at::Tensor& t){
     }
     torch::NoGradGuard no_grad;
     std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(t.to(device_));
+    if(c10::Device(device_) == t.device()){
+        inputs.push_back(t);
+    }else{
+        std::cout<<"[GEMFIELD] warning: model device: "<<device_<<" != input device: "<<t.device()<<std::endl;
+        inputs.push_back(t.to(device_));
+    }
+#ifdef GARRULOUS_GEMFIELD
+    at::cuda::CUDAStream stream = at::cuda::getCurrentCUDAStream();
+    AT_CUDA_CHECK(cudaStreamSynchronize(stream));
     auto start = std::chrono::system_clock::now();
+#endif 
     T output;
     if constexpr (std::is_same_v<T, at::Tensor>){
         output = module_->forward(inputs).toTensor();
@@ -103,9 +116,13 @@ T Deepvac::forward(at::Tensor& t){
     }else{
         static_assert(dependent_false<T>::value, "[libdeepvac] invalid usage of forward.");
     }
+#ifdef GARRULOUS_GEMFIELD
+    stream = at::cuda::getCurrentCUDAStream();
+    AT_CUDA_CHECK(cudaStreamSynchronize(stream));
     std::chrono::duration<double> forward_duration = std::chrono::system_clock::now() - start;
-    std::string msg = gemfield_org::format("forward time: %f",  forward_duration.count() );
+    std::string msg = gemfield_org::format("model forward time: %f",  forward_duration.count() );
     GEMFIELD_DI(msg.c_str());
+#endif
     return output;
 }
 
@@ -113,3 +130,4 @@ template at::Tensor Deepvac::forward<at::Tensor>(at::Tensor& t);
 template std::vector<c10::IValue> Deepvac::forward<std::vector<c10::IValue>>(at::Tensor& t);
 
 } //namespace deepvac
+

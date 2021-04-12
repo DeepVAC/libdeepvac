@@ -21,8 +21,9 @@ enum MEAN_STD_TYPE {
     MEAN_STD_FROM_FACE
 };
 std::optional<cv::Mat> img2CvMat(std::string img_path, bool is_rgb=false);
-std::optional<at::Tensor> cvMat2Tensor(cv::Mat& frame, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
-std::optional<at::Tensor> cvMat2Tensor(std::vector<cv::Mat>& frames, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
-std::optional<at::Tensor> cvMat2Tensor(cv::Mat&& tmp_frame, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
-std::optional<at::Tensor> img2Tensor(std::string img_path, bool is_rgb=false, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD);
+void normalizeTensor(at::Tensor& t, NORMALIZE_TYPE normalize, MEAN_STD_TYPE mean_std, std::string device="cpu");
+std::optional<at::Tensor> cvMat2Tensor(cv::Mat& frame, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD, std::string device="cpu");
+std::optional<at::Tensor> cvMat2Tensor(std::vector<cv::Mat>& frames, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD,std::string device="cpu");
+std::optional<at::Tensor> cvMat2Tensor(cv::Mat&& tmp_frame, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD,std::string device="cpu");
+std::optional<at::Tensor> img2Tensor(std::string img_path, bool is_rgb=false, NORMALIZE_TYPE normalize=NO_NORMALIZE, MEAN_STD_TYPE mean_std=NO_MEAN_STD,std::string device="cpu");
 }

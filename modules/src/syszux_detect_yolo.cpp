@@ -73,7 +73,7 @@ std::optional<std::vector<std::pair<int, std::vector<float>>>> SyszuxDetectYolo:
     cv::copyMakeBorder(input_img, input_img, top, bottom, left, right, cv::BORDER_CONSTANT, {114, 114, 114});
     cv::cvtColor(input_img, input_img, cv::COLOR_BGR2RGB);
     
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(input_img), gemfield_org::NORMALIZE0_1, gemfield_org::NO_MEAN_STD);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(input_img), gemfield_org::NORMALIZE0_1, gemfield_org::NO_MEAN_STD, device_);
 
     if(!input_tensor_opt){
         return std::nullopt;

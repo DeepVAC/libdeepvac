@@ -10,16 +10,17 @@ project(deepvac
     HOMEPAGE_URL "https://github.com/deepvac/libdeepvac"
     LANGUAGES CXX)
 
-option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
+#has opencv static library link issue when turn off BUILD_STATIC
 option(BUILD_STATIC "build static libdeepvac library" ON)
+
 option(USE_MKL "use MKL as pytorch LAPACK backend" OFF)
 option(USE_LOADER "build loader which needs c++17" OFF)
 option(USE_CUDA "Use CUDA" OFF)
 option(USE_NUMA "Use NUMA" OFF)
 option(USE_TENSORRT "Use TensorRT" OFF)
 option(BUILD_ALL_EXAMPLES "build all examples" OFF)
-#turn off USE_STATIC_LIBTORCH is not tested.
-option(USE_STATIC_LIBTORCH "use LibTorch static library" ON)
+option(USE_STATIC_LIBTORCH "use LibTorch static library" OFF)
+option(GARRULOUS_GEMFIELD "Build deepvac libraries garrulously" OFF)
 option(USE_MAGMA "use magma" ON)
 #You should customize the blas dependencies.
 message(STATUS "SYSTEM_LAPACK_LIBRARIES: ${SYSTEM_LAPACK_LIBRARIES}")
@@ -28,57 +29,67 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LINUX TRUE)
 else()
     set(LINUX FALSE)
-endif()
-
-if(NOT LINUX)
     message(FATAL_ERROR "deepvac does not support platform: " ${CMAKE_SYSTEM_NAME})
 endif()
 
-if(USE_MKL AND USE_STATIC_LIBTORCH)
+if(USE_MKL)
     if(NOT DEFINED MKL_HOME)
-        set(MKL_HOME "/opt/intel/mkl")
+        if(USE_STATIC_LIBTORCH)
+            set(MKL_HOME "/opt/intel/mkl")
+        else()
+            set(MKL_HOME "/opt/conda")
+        endif()
     endif()
     if(NOT EXISTS ${MKL_HOME})
         message(FATAL "unable to locate MKL library, either set MKL_HOME or install MKL")
     endif()
+
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set(MKL_ARCHITECTURES intel64)
     else()
         set(MKL_ARCHITECTURES ia32)
     endif()
-    #must consistent with pytorch static library.
-    set(INT_LIB "libmkl_intel_lp64.a")
-    set(SEQ_LIB "libmkl_sequential.a")
-    #set(THR_LIB "libmkl_intel_thread.a")
-    set(THR_LIB "libmkl_gnu_thread.a")
-    set(COR_LIB "libmkl_core.a")
-    
-    find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS ${MKL_ROOT}/include)
-    
-    set(MKL_LIB_PATH ${MKL_HOME}/lib/${MKL_ARCHITECTURES})
-    find_library(MKL_INTERFACE_LIBRARY
-                 NAMES ${INT_LIB}
-                 PATHS ${MKL_LIB_PATH}
-                 NO_DEFAULT_PATH)
-    
-    find_library(MKL_SEQUENTIAL_LAYER_LIBRARY
-                 NAMES ${SEQ_LIB}
-                 PATHS ${MKL_LIB_PATH}
-                 NO_DEFAULT_PATH)
-    
-    find_library(MKL_THREAD_LAYER_LIBRARY
-                 NAMES ${THR_LIB}
-                 PATHS ${MKL_LIB_PATH}
-                 NO_DEFAULT_PATH)
-    
-    find_library(MKL_CORE_LIBRARY
-                 NAMES ${COR_LIB}
-                 PATHS ${MKL_LIB_PATH}
-                 NO_DEFAULT_PATH)
-    
+
+    if(USE_STATIC_LIBTORCH)
+        #must consistent with pytorch static library.
+        set(INT_LIB "libmkl_intel_lp64.a")
+        set(SEQ_LIB "libmkl_sequential.a")
+        #set(THR_LIB "libmkl_intel_thread.a")
+        set(THR_LIB "libmkl_gnu_thread.a")
+        set(COR_LIB "libmkl_core.a")
+        set(MKL_LIB_PATH ${MKL_HOME}/lib/${MKL_ARCHITECTURES})
+        find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS ${MKL_HOME}/include)
+    else()
+        #must consistent with pytorch static library.
+        set(INT_LIB "libmkl_intel_lp64.so")
+        set(SEQ_LIB "libmkl_sequential.so")
+        #set(THR_LIB "libmkl_intel_thread.a")
+        set(THR_LIB "libmkl_gnu_thread.so")
+        set(COR_LIB "libmkl_core.so")
+        set(MKL_LIB_PATH ${MKL_HOME}/lib)
+    endif()
+        
+    find_library(MKL_INTERFACE_LIBRARY NAMES ${INT_LIB} PATHS ${MKL_LIB_PATH} NO_DEFAULT_PATH)
+    find_library(MKL_SEQUENTIAL_LAYER_LIBRARY NAMES ${SEQ_LIB} PATHS ${MKL_LIB_PATH} NO_DEFAULT_PATH)
+    find_library(MKL_THREAD_LAYER_LIBRARY NAMES ${THR_LIB} PATHS ${MKL_LIB_PATH} NO_DEFAULT_PATH)
+    find_library(MKL_CORE_LIBRARY NAMES ${COR_LIB} PATHS ${MKL_LIB_PATH} NO_DEFAULT_PATH)
+        
     set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR})
     set(MKL_LIBRARIES ${MKL_CORE_LIBRARY} ${MKL_THREAD_LAYER_LIBRARY} ${MKL_INTERFACE_LIBRARY} )
-    set(MKL_LIBRARIES -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group)
+    if(USE_STATIC_LIBTORCH)
+        set(MKL_LIBRARIES -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group)
+    endif()
+    list(APPEND MKL_LIBRARIES "-fopenmp")
+    list(APPEND MKL_LIBRARIES "-lpthread")
+    list(APPEND MKL_LIBRARIES "-lm")
+    list(APPEND MKL_LIBRARIES "-ldl")
+    if(NOT USE_STATIC_LIBTORCH)
+        list(APPEND TORCH_LIBRARIES ${MKL_LIBRARIES})
+    endif()
+else()
+    if(NOT USE_STATIC_LIBTORCH)
+        list(APPEND TORCH_LIBRARIES "${SYSTEM_LAPACK_LIBRARIES}")
+    endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -126,14 +137,12 @@ if(USE_STATIC_LIBTORCH)
             message(FATAL "Cannot find magma, which is required for libdeepvac when USE_CUDA & USE_MAGMA are enabled.")
         endif(MAGMA_LIBRARIES)
     endif()
-
+    
     if(USE_MKL)
         list(APPEND LIBTORCH_CUDA_LIBRARIES ${MKL_LIBRARIES})
-        list(APPEND LIBTORCH_CUDA_LIBRARIES "-lpthread")
-        list(APPEND LIBTORCH_CUDA_LIBRARIES "-lm")
-        list(APPEND LIBTORCH_CUDA_LIBRARIES "-ldl")
+    else()
+        list(APPEND LIBTORCH_CUDA_LIBRARIES "${SYSTEM_LAPACK_LIBRARIES}")
     endif()
-    list(APPEND LIBTORCH_CUDA_LIBRARIES "${SYSTEM_LAPACK_LIBRARIES}")
 
     foreach(GEM ${LIBTORCH_CUDA_LIBRARIES})
         string(FIND ${GEM} "_cuda.a" GEM_FIELD)
@@ -180,8 +189,6 @@ if(USE_STATIC_LIBTORCH)
     endif()
     message(STATUS "LIBTORCH_CUDA_LIBRARIES: ${LIBTORCH_CUDA_LIBRARIES}")
     message(STATUS "LIBTORCH_CPU_LIBRARIES: ${LIBTORCH_CPU_LIBRARIES}")
-else()
-    message(FATAL "Turn off USE_STATIC_LIBTORCH is not tested yet.")
 endif()
 
 macro (add_syszux_sources)
@@ -309,4 +316,4 @@ install(TARGETS deepvac EXPORT deepvac DESTINATION "lib")
 install(FILES ${HEADER_FILE_LIST} DESTINATION "include/deepvac")
 
 install(EXPORT deepvac DESTINATION "share/deepvac")
-install(FILES ${DEEPVAC_FILE_LIST} DESTINATION "lib/deepvac") 
+install(FILES ${DEEPVAC_FILE_LIST} DESTINATION "lib/deepvac")
