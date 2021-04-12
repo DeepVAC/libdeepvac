@@ -36,7 +36,7 @@ std::optional<at::Tensor> cvMat2Tensor(cv::Mat&& tmp_frame, NORMALIZE_TYPE norma
 } 
 
 void normalizeTensor(at::Tensor& t, NORMALIZE_TYPE normalize, MEAN_STD_TYPE mean_std, std::string device){
-    t = t.to(torch::kCUDA).permute({0, 3, 1, 2}).to(at::kFloat);
+    t = t.to(device).permute({0, 3, 1, 2}).to(at::kFloat);
     switch(normalize) {
         case NO_NORMALIZE:
             break;
@@ -71,8 +71,8 @@ std::optional<at::Tensor> cvMat2Tensor(cv::Mat& frame, NORMALIZE_TYPE normalize,
         GEMFIELD_E("illegal img: wrong rows or cols.");
         return std::nullopt;
     }
-    // auto options = torch::TensorOptions().dtype(torch::kFloat32).layout(torch::kStrided).device(torch::kCUDA, 1)
-    auto options = torch::TensorOptions().dtype(torch::kUInt8);//.device()
+    //auto options = torch::TensorOptions().dtype(torch::kFloat32).layout(torch::kStrided).device(device); bug2fix!!!
+    auto options = torch::TensorOptions().dtype(torch::kUInt8);
     auto input_tensor = torch::from_blob(frame.data, {1, frame.rows, frame.cols, 3}, options);
 
     normalizeTensor(input_tensor, normalize, mean_std, device);

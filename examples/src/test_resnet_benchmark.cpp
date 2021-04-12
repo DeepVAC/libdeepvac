@@ -13,7 +13,6 @@
 #include <ATen/ATen.h>
 #include <ATen/Parallel.h>
 #include "syszux_imagenet_classes.h"
-#include <stdlib.h>
 
 using namespace deepvac;
 void benchmark(SyszuxClsResnet& civilnet, at::Tensor& t){
