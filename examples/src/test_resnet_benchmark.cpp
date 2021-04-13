@@ -15,9 +15,61 @@
 #include "syszux_imagenet_classes.h"
 
 using namespace deepvac;
-void benchmark(SyszuxClsResnet& civilnet, at::Tensor& t){
+
+void validate(SyszuxClsResnet& civilnet, at::Tensor& t, std::string img_path){
+    std::cout<<"---------------VALIDATE BEGIN---------------"<<std::endl;
+    civilnet.set({static_cast<int>(t.size(4)), static_cast<int>(t.size(3))});
+    auto mat_opt = gemfield_org::img2CvMat(img_path);
+    if(!mat_opt){
+        throw std::runtime_error("illegal image detected in validate!");
+    }
+    auto mat_out = mat_opt.value();
+
+    auto stream = at::cuda::getCurrentCUDAStream();
+    AT_CUDA_CHECK(cudaStreamSynchronize(stream));
+    auto start = std::chrono::system_clock::now();
+
+    auto resnet_out_opt = civilnet.process(mat_out);
+
+    stream = at::cuda::getCurrentCUDAStream();
+    AT_CUDA_CHECK(cudaStreamSynchronize(stream));
+    std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
+    std::string msg = gemfield_org::format("Overall process time in validate: %f", model_loading_duration.count());
+
+    if(!resnet_out_opt){
+        throw std::runtime_error("return empty error!");
+    }
+    
+    auto resnet_out = resnet_out_opt.value();
+    std::cout <<msg<< "|Index: " << resnet_out.first << "|Class: " << gemfield_org::imagenet_classes[resnet_out.first] << "|Probability: " << resnet_out.second << std::endl;
+    std::cout<<"---------------VALIDATE END---------------"<<std::endl;
+}
+
+void warmUp(SyszuxClsResnet& civilnet, at::Tensor& t, std::string img_path, std::string device){
+    std::cout<<"---------------WARMUP BEGIN---------------"<<std::endl;
+    //for loop to warmup
+    auto options = torch::TensorOptions().dtype(torch::kFloat32).layout(torch::kStrided).device(device);
+
+    for(int i=0; i<10;i++){
+        auto ti = torch::rand({static_cast<int>(t.size(1)),static_cast<int>(t.size(2)),static_cast<int>(t.size(3)), static_cast<int>(t.size(4))},options);
+        auto stream = at::cuda::getCurrentCUDAStream();
+        AT_CUDA_CHECK(cudaStreamSynchronize(stream));
+        auto start = std::chrono::system_clock::now();
+        auto resnet_out_opt = civilnet.process(ti);
+        stream = at::cuda::getCurrentCUDAStream();
+        AT_CUDA_CHECK(cudaStreamSynchronize(stream));
+        std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
+        std::string msg = gemfield_org::format("Overall process time in warmup: %f", model_loading_duration.count());
+    }
+    std::cout<<"---------------WARMUP END---------------"<<std::endl;
+}
+
+void benchmark(SyszuxClsResnet& civilnet, at::Tensor& t, std::string img_path, std::string device){
+    validate(civilnet, t, img_path);
+    warmUp(civilnet, t, img_path, device);
+
     auto item_num = t.size(0);
-    std::cout<<"benchmark loop num: "<<item_num<<std::endl;
+    std::cout<<"---------------BENCHMARK BEGIN---------------"<<item_num<<std::endl;
     auto stream = at::cuda::getCurrentCUDAStream();
     AT_CUDA_CHECK(cudaStreamSynchronize(stream));
     auto start = std::chrono::system_clock::now();
@@ -34,6 +86,7 @@ void benchmark(SyszuxClsResnet& civilnet, at::Tensor& t){
     std::string header2 = "|-----|-------|----------|-----------|\n";
     std::string msg = gemfield_org::format("|Resnet50|libtorch|%dx%d|%f|\n", t.size(4),t.size(3),model_loading_duration.count()/item_num);
     std::cout << header<<header2<<msg<< std::endl;
+    std::cout<<"---------------BENCHMARK END---------------"<<std::endl;
 }
 int main(int argc, const char* argv[]) {
     if (argc != 4) {
@@ -66,39 +119,10 @@ int main(int argc, const char* argv[]) {
     auto t1280x720 = torch::rand({50,1,3,720,1280}, options);
     auto t1280x1280 = torch::rand({50,1,3,1280,1280}, options);
    
-    //step2. validate resnet50 imagenet-pretrained model function 
-    cls_resnet.set({224, 224});
-    auto mat_opt = gemfield_org::img2CvMat(img_path);
-    if(!mat_opt){
-        throw std::runtime_error("illegal image detected!");
-        return 1;
-    }
-    auto mat_out = mat_opt.value();
-    //step 2.1 for loop to warmup
-    for (int i=0; i<3; i++) {
-        auto stream = at::cuda::getCurrentCUDAStream();
-        AT_CUDA_CHECK(cudaStreamSynchronize(stream));
-        auto start = std::chrono::system_clock::now();
-
-        auto resnet_out_opt = cls_resnet.process(mat_out);
-
-        stream = at::cuda::getCurrentCUDAStream();
-        AT_CUDA_CHECK(cudaStreamSynchronize(stream));
-        std::chrono::duration<double> model_loading_duration = std::chrono::system_clock::now() - start;
-        std::string msg = gemfield_org::format("resnet img process time during warmup: %f", model_loading_duration.count());
-        std::cout << msg << std::endl<< std::endl;
-
-        if(!resnet_out_opt){
-            throw std::runtime_error("return empty error!");
-        }
-        
-        auto resnet_out = resnet_out_opt.value();
-        std::cout << "Index: " << resnet_out.first << "|Class: " << gemfield_org::imagenet_classes[resnet_out.first] << "|Probability: " << resnet_out.second << std::endl;
-    }
-    //step3 benchmark
-    benchmark(cls_resnet, t224x224);
-    benchmark(cls_resnet, t640x640);
-    benchmark(cls_resnet, t1280x720);
-    benchmark(cls_resnet, t1280x1280);
+    //step2 benchmark
+    benchmark(cls_resnet, t224x224, img_path, device);
+    benchmark(cls_resnet, t640x640, img_path, device);
+    benchmark(cls_resnet, t1280x720, img_path, device);
+    benchmark(cls_resnet, t1280x1280, img_path, device);
     return 0;
 }
