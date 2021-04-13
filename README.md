@@ -8,7 +8,7 @@ Use PyTorch model in C++ project.
 在MLab（云上炼丹师）实验室，我们使用[DeepVAC](https://github.com/DeepVAC/deepvac) 来训练获得新模型，使用本项目来部署模型。
 
 libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
-- 向下封装了推理引擎，目前封装了LibTorch，即将封装TensorRT、NCNN；
+- 向下封装了推理引擎，目前封装了LibTorch，即将封装TensorRT、NCNN、TNN；
 - 向上提供Deepvac类，方便用户继承并实现其自定义的模型；
 - 在modules目录下，MLab提供了经典网络的C++实现；
 - 在utils目录下，MLab提供了网络中常见helper函数的C++实现。
@@ -81,9 +81,9 @@ libdeepvac基于CMake进行构建。
 ## 下载依赖
 假设你使用的是MLab HomePod，那么你只需要下载opencv库、libtorch库：
 - opencv动态库：自行apt下载；
-- opencv静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/opencv4deepvac.tar.gz；
+- opencv静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/opencv4deepvac.tar.gz 
 - libtorch动态库：内置在MLab HomePod的/opt/conda/lib/python3.8/site-packages/torch/目录下；
-- libtorch静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/libtorch.tar.gz；
+- libtorch静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/libtorch.tar.gz 
 
 你亦可以在MLab HomePod上自行从源码编译上述的依赖库。
 
@@ -150,5 +150,30 @@ target_include_directories(${your_target} "${DEEPVAC_LIBTORCH_INCLUDE_DIRS};${DE
 #库文件
 target_link_libraries( ${your_target} ${DEEPVAC_LIBRARIES} ${DEEPVAC_LIBTORCH_CUDA_LIBRARIES} ${DEEPVAC_LIBCUDA_LIBRARIES} ${DEEPVAC_CV_LIBRARIES})
 ```
+
+# Benchmark
+libdeepvac会提供不同目标平台及不同推理引擎的benchmark，当前仅支持libtorch推理引擎。
+
+## 1. X86-64 Linux + LibTorch的benchmark步骤
+- 部署[MLab HomePod](https://github.com/DeepVAC/MLab#1-%E9%83%A8%E7%BD%B2);
+- 克隆本项目 
+```git clone https://github.com/DeepVAC/libdeepvac```
+- 编译
+```bash
+#新建编译目录
+mkdir build
+cd build
+#cmake
+cmake -DGARRULOUS_GEMFIELD=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<your_opencv_dir>;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
+#编译
+make -j4
+```
+- 运行benchmark
+```bash
+./bin/test_resnet_benchmark cuda:0 <your_torch_script.pt> <a_imagenet_test.jpg>
+```
+
+## 2. NA
+
 # 演示
 [SYSZUX-FACE](https://github.com/CivilNet/SYSZUX-FACE)基于本项目实现了人脸检测功能。
