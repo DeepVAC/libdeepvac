@@ -57,19 +57,25 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     cv::Mat dst;
     frame.convertTo(dst, CV_32F);
 
-    auto prior_nums = calculatePriorBox(h, w);
-    setDynamicInputOutput((float*)dst.data, c, h, w);
-
+    setDynamicInputOutput((float*)dst.data, c, last_h_, last_w_);
     std::vector<void*> predicitonBindings = {datas_[0].deviceBuffer.data(), datas_[1].deviceBuffer.data(), datas_[2].deviceBuffer.data(), datas_[3].deviceBuffer.data()};
     auto predict = forward(predicitonBindings.data());
 
-    for(int i = 1; i < 4; ++i) {
-        cudaMemcpy(datas_[i].hostBuffer.data(), datas_[i].deviceBuffer.data(), datas_[i].deviceBuffer.nbBytes(), cudaMemcpyDeviceToHost);
-    }
     //Nx4    //Nx2    //Nx10
-    auto loc = torch::from_blob(datas_[1].hostBuffer.data(), {1, prior_nums, 4}).to(device_);//output[0].toTensor();
-    auto forward_conf = torch::from_blob(datas_[2].hostBuffer.data(), {1, prior_nums, 2}).to(device_);//output[1].toTensor();
-    auto landms = torch::from_blob(datas_[3].hostBuffer.data(), {1, prior_nums, 10}).to(device_);//output[2].toTensor();
+    auto prior_nums = calculatePriorBox(last_h_, last_w_);
+    torch::Tensor loc, landms, forward_conf;
+    for(int i = 1; i < 4; ++i) {
+        auto channel = trt_module_->getBindingDimensions(i).d[2];
+        if(4 == channel) {
+            loc = torch::from_blob(datas_[i].deviceBuffer.data(), {1, prior_nums, 4}, torch::kCUDA);
+        } else if(2 == channel) {
+            forward_conf = torch::from_blob(datas_[i].deviceBuffer.data(), {1, prior_nums, 2}, torch::kCUDA);
+        } else if(10 == channel) {
+            landms = torch::from_blob(datas_[i].deviceBuffer.data(), {1, prior_nums, 10}, torch::kCUDA);
+        } else {
+            GEMFIELD_E("face detect model error, invalid output dims");
+        }
+    }
 
     loc = loc.squeeze(0);
     forward_conf = forward_conf.squeeze(0);
@@ -85,6 +91,10 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
 
     torch::Tensor scores = forward_conf.slice(1, 1, 2);
     std::vector<torch::Tensor> index = torch::where(scores>confidence_threshold_);
+    if (index[0].size(0) == 0) {
+        return std::nullopt;
+    }
+
     boxes = boxes.index({index[0]});
     landms = landms.index({index[0]});
     scores = scores.index({index[0]});
@@ -105,11 +115,8 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     keep = keep.slice(0, 0, keep_top_k_);
     dets = dets.index({keep});
     landms = landms.index({keep});
-
-    std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>> faces_info;
-
     if(dets.size(0) == 0){
-        return faces_info;
+        return std::nullopt;
     }
 
     std::string msg = gemfield_org::format("detected %d faces", dets.size(0));
@@ -128,13 +135,15 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     cv::Mat dets_mat(dets.size(0), dets.size(1), CV_32F);
     std::memcpy((void *) dets_mat.data, dets.data_ptr(), torch::elementSize(torch::kF32) * dets.numel());
 
+    std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>> faces_info;
     for(int i=0; i<landms_mat.rows; i++) {
         auto landmark = landms_mat.row(i);
         auto [dst_img, dst_points] = align_face_(frame, landmark);
         auto bbox = dets_mat.row(i);
         std::vector<float> bbox_vec(bbox.begin<float>(), bbox.end<float>());
         dst_img.convertTo(dst_img, CV_32FC3);
-        faces_info.emplace_back(std::tuple(dst_img, bbox_vec, dst_points));}
+        faces_info.emplace_back(std::tuple(dst_img, bbox_vec, dst_points));
+    }
 
     return faces_info;
 }
@@ -154,10 +163,10 @@ void SyszuxFaceRetinaNV::setDynamicInputOutput(float* data, const int inputC, co
     trt_context_->setBindingDimensions(0, nvinfer1::Dims4{1, inputC, inputH, inputW});
     //output
     auto nums = calculatePriorBox(inputH, inputW);
-    int c[] = {0, 4, 2, 10};
     for(int i = 1; i < 4; ++i) {
-        datas_[i].hostBuffer.resize(nvinfer1::Dims3{1, nums, c[i]});
-        datas_[i].deviceBuffer.resize(nvinfer1::Dims3{1, nums, c[i]});
+        auto channel = trt_module_->getBindingDimensions(i).d[2];
+        datas_[i].hostBuffer.resize(nvinfer1::Dims3{1, nums, channel});
+        datas_[i].deviceBuffer.resize(nvinfer1::Dims3{1, nums, channel});
     }
 }
 
