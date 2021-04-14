@@ -80,6 +80,10 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
 
     torch::Tensor scores = forward_conf.slice(1, 1, 2);
     std::vector<torch::Tensor> index = torch::where(scores>confidence_threshold_);
+    if (index[0].size(0) == 0) {
+        return std::nullopt;
+    }
+
     boxes = boxes.index({index[0]});
     landms = landms.index({index[0]});
     scores = scores.index({index[0]});
@@ -100,11 +104,8 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     keep = keep.slice(0, 0, keep_top_k_);
     dets = dets.index({keep});
     landms = landms.index({keep});
-    
-    std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>> faces_info;
-
     if(dets.size(0) == 0){
-        return faces_info;
+        return std::nullopt;
     }
 
     std::string msg = gemfield_org::format("detected %d faces", dets.size(0));
@@ -122,7 +123,8 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     dets = dets.to(torch::kCPU);
     cv::Mat dets_mat(dets.size(0), dets.size(1), CV_32F);
     std::memcpy((void *) dets_mat.data, dets.data_ptr(), torch::elementSize(torch::kF32) * dets.numel());
-    
+
+    std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>> faces_info;
     for(int i=0; i<landms_mat.rows; i++) {
         auto landmark = landms_mat.row(i);
         auto [dst_img, dst_points] = align_face_(frame, landmark);
