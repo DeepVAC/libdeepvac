@@ -21,6 +21,10 @@ void SyszuxOcrPse::setGlab(bool is_glab){
     is_glab_ = is_glab;
 }
 
+void SyszuxOcrPse::setExtend(bool is_extend){
+    is_extend_ = is_extend;
+}
+
 cv::Mat SyszuxOcrPse::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) {
     cv::Point2f center = rotated_rects.center;
     cv::Size2f size = rotated_rects.size;
@@ -57,7 +61,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     float scale1 = long_size_ * 1.0 / std::max(img.rows, img.cols);
     cv::resize(rgb_img, resize_img, cv::Size(), scale1, scale1);
     
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET, device_);
 
     if(!input_tensor_opt){
         return std::nullopt;
@@ -114,9 +118,6 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         std::memcpy((void *) points_mat.data, points.data_ptr(), torch::elementSize(torch::kFloat) * points.numel());
         cv::RotatedRect rect = cv::minAreaRect(points_mat);
 
-        cv::Point2f center = rect.center;
-        cv::Size2f size = rect.size;
-        float angle = rect.angle;
         rect.center.x = rect.center.x * scale2[0];
         rect.center.y = rect.center.y * scale2[1];
         rect.size.width = rect.size.width * scale2[0];
@@ -136,13 +137,19 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         for(int i=0; i<glab_result.size(); ++i){
             result.push_back(glab_result[i].getRect());
         }
-    }
-    else{
+    } else{
         result.assign(pse_detect_out.begin(), pse_detect_out.end());
     }
 
     for(int i=0; i<result.size(); ++i){
         cv::RotatedRect box = result[i];
+        if(is_extend_){
+            if(box.size.width >= box.size.height){
+                box.size.width += 2*crop_gap_;
+            } else{
+                box.size.height += 2*crop_gap_;
+            }
+        }
         cv::Mat img_crop = cropRect(img_ori, box);
         crop_imgs.push_back(img_crop);
 

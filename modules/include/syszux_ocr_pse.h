@@ -26,6 +26,7 @@ class SyszuxOcrPse : public Deepvac {
         std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> process(cv::Mat frame);
         void set(int long_size, int gap, int text_min_area, float text_mean_score);
         void setGlab(bool is_glab);
+        void setExtend(bool is_extend);
     private:
 	std::vector<std::vector<float>> merge(std::vector<std::vector<float>> rects);
         void getKernals(torch::Tensor input_data, std::vector<cv::Mat> &kernals);
@@ -39,6 +40,7 @@ class SyszuxOcrPse : public Deepvac {
         int crop_gap_{10};
         int text_min_area_{300};
         float text_mean_score_{0.93};
-        bool is_glab_{true};
+        bool is_glab_{false};
+        bool is_extend_{false};
 };
 } //namespace
