@@ -6,6 +6,8 @@
 
 #include "opencv2/opencv.hpp"
 #include "syszux_ocr_pse.h"
+#include "syszux_glab.h"
+
 namespace deepvac {
 
 void SyszuxOcrPse::set(int long_size, int crop_gap, int text_min_area, float text_mean_score) {
@@ -13,6 +15,10 @@ void SyszuxOcrPse::set(int long_size, int crop_gap, int text_min_area, float tex
     crop_gap_ = crop_gap;
     text_min_area_ = text_min_area;
     text_mean_score_ = text_mean_score;
+}
+
+void SyszuxOcrPse::setGlab(bool is_glab){
+    is_glab_ = is_glab;
 }
 
 cv::Mat SyszuxOcrPse::cropRect(cv::Mat &img, cv::RotatedRect &rotated_rects) {
@@ -44,13 +50,14 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     GEMFIELD_SI;
     //prepare input
     std::vector<cv::Mat> crop_imgs;
+    std::vector<std::vector<int>> rects;
+    cv::Mat img_ori = img.clone();
     cv::Mat resize_img, rgb_img;
-    cv::Mat text_box = img.clone();
     cv::cvtColor(img, rgb_img, cv::COLOR_BGR2RGB);
     float scale1 = long_size_ * 1.0 / std::max(img.rows, img.cols);
     cv::resize(rgb_img, resize_img, cv::Size(), scale1, scale1);
     
-    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET, device_);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(resize_img, gemfield_org::NORMALIZE0_1, gemfield_org::MEAN_STD_FROM_IMAGENET);
 
     if(!input_tensor_opt){
         return std::nullopt;
@@ -59,6 +66,7 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
 
     //prepare forward
     auto outputs = forward(input_tensor);
+
     //prepare output
     outputs = outputs.to(device_);
     outputs = outputs.squeeze();
@@ -80,11 +88,9 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
     for (int i=0; i<pred.size(); i++){
         label[i] = torch::tensor(pred[i]);
     }
-
-    std::vector<std::vector<float>> bboxes;
     int label_num = torch::max(label).item<int>() + 1;
-    std::vector<cv::RotatedRect> tilt_rects;
-    std::vector<std::vector<float>> horizon_rects;
+
+    std::vector<cv::RotatedRect> pse_detect_out;
     for(int i=1; i<label_num; i++)
     {
         torch::Tensor mask_index = (label==i);
@@ -106,8 +112,8 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         points = points.to(torch::kCPU);
         cv::Mat points_mat(points.size(0), points.size(1), CV_32FC1);
         std::memcpy((void *) points_mat.data, points.data_ptr(), torch::elementSize(torch::kFloat) * points.numel());
-        auto rect = cv::minAreaRect(points_mat);
-        
+        cv::RotatedRect rect = cv::minAreaRect(points_mat);
+
         cv::Point2f center = rect.center;
         cv::Size2f size = rect.size;
         float angle = rect.angle;
@@ -115,56 +121,41 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         rect.center.y = rect.center.y * scale2[1];
         rect.size.width = rect.size.width * scale2[0];
         rect.size.height = rect.size.height * scale2[1];
-        if (std::abs(angle+90)<2 || std::abs(angle)<2) {
-            cv::Mat crop_box;
-            cv::boxPoints(rect, crop_box);
-
-            auto crop_box_tensor = torch::from_blob(crop_box.data, {crop_box.rows, crop_box.cols}).toType(torch::kFloat);
-            crop_box_tensor = crop_box_tensor.to(device_);
-            crop_box_tensor.select(1, 0) = crop_box_tensor.select(1, 0).clamp_(0, img.cols);
-            crop_box_tensor.select(1, 1) = crop_box_tensor.select(1, 1).clamp_(0, img.rows);
-
-            auto max_tensor = std::get<0>(torch::max(crop_box_tensor, 0));
-            auto min_tensor = std::get<0>(torch::min(crop_box_tensor, 0));
-            float x_max = max_tensor[0].item().toFloat();
-            float y_max = max_tensor[1].item().toFloat();
-            float x_min = min_tensor[0].item().toFloat();
-            float y_min = min_tensor[1].item().toFloat();
-
-            horizon_rects.push_back({x_min, y_min, x_max, y_max});
-        }
-	else {
-            tilt_rects.push_back(rect);
-        }
-    }
-    std::vector<std::vector<float>> keep = mergeBox(horizon_rects);
-    std::vector<std::vector<int>> rects;
-    for (auto &rect : keep) {
-        int x_min = (int)rect[0];
-        int y_min = (int)rect[1];
-        int x_max = (int)rect[2];
-        int y_max = (int)rect[3];
-        x_max = (x_max + crop_gap_) >= img.cols ? img.cols : (x_max + crop_gap_);
-        x_min = (x_min - crop_gap_) <= 0 ? 0 : (x_min - crop_gap_);
-        auto crop_img = img(cv::Rect(x_min, y_min, x_max-x_min, y_max-y_min));
-        crop_imgs.push_back(crop_img);
-        rects.push_back({x_min, y_min, x_min, y_max, x_max, y_max, x_max, y_min});
+        pse_detect_out.push_back(rect);
     }
 
-    for (auto &rect : tilt_rects) {
-        cv::Mat crop_box;
-        cv::boxPoints(rect, crop_box);
+    std::vector<cv::RotatedRect> result;
+    if(is_glab_){
+        deepvac::DeepvacOcrFrame ocr_frame(img_ori, pse_detect_out);
+        auto glab_out_opt = ocr_frame();
+
+        if (!glab_out_opt) {
+            return std::nullopt;
+        }
+        std::vector<deepvac::AggressiveBox> glab_result = glab_out_opt.value();
+        for(int i=0; i<glab_result.size(); ++i){
+            result.push_back(glab_result[i].getRect());
+        }
+    }
+    else{
+        result.assign(pse_detect_out.begin(), pse_detect_out.end());
+    }
+
+    for(int i=0; i<result.size(); ++i){
+        cv::RotatedRect box = result[i];
+        cv::Mat img_crop = cropRect(img_ori, box);
+        crop_imgs.push_back(img_crop);
+
         std::vector<int> rect_;
+        cv::Mat crop_box;
+        cv::boxPoints(box, crop_box);
         for (int row=0; row<crop_box.rows; row++) {
             for (int col=0; col<crop_box.cols; col++) {
                 rect_.push_back(int(crop_box.at<float>(row, col)));
             }
         }
         rects.push_back(rect_);
-        cv::Mat crop_img = cropRect(img, rect);
-        crop_imgs.push_back(crop_img);
     }
-
     std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> crop_imgs_and_rects(crop_imgs, rects);
     return crop_imgs_and_rects;
 }
