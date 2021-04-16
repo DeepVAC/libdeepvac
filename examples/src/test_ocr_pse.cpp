@@ -6,6 +6,7 @@
 
 #include "syszux_ocr_pse.h"
 #include "gemfield.h"
+#include <assert.h>
 
 using namespace deepvac;
 int main(int argc, char** argv)
@@ -22,11 +23,10 @@ int main(int argc, char** argv)
     float text_mean_score = 0.90;
 
     SyszuxOcrPse ocr_detect;
-    ocr_detect.setDevice("cpu");
+    ocr_detect.setDevice(device);
     ocr_detect.setModel(ocr_pse_deepvac);
 
     ocr_detect.set(long_size, crop_gap, text_min_area, text_mean_score);
-
     auto mat_opt = gemfield_org::img2CvMat(path);
     if(!mat_opt){
         throw std::runtime_error("illegal image detected");
@@ -50,5 +50,15 @@ int main(int argc, char** argv)
         cv::imwrite("./ocr_detect_test" + std::to_string(i) + ".jpg", crop_imgs[i]);
         std::cout << "rect: " << rects[i] << std::endl;
     }
+    for (int i=0; i<rects.size(); ++i){
+        std::vector<cv::Point> vPolygonPoint;
+        int pts = rects[i].size();
+        assert(pts%2==0);
+        for(int j=0; j<pts; j=j+2){
+            vPolygonPoint.push_back(cv::Point(rects[i][j],rects[i][j+1]));
+        }
+	cv::polylines(mat_out, vPolygonPoint, true, cv::Scalar(0, 0, 255), 2, 4);
+    }
+    cv::imwrite("./vis.jpg", mat_out);
     return 0;
 }
