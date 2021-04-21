@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
     SyszuxOcrDB ocr_detect;
     ocr_detect.setDevice(device);
-    ocr_detect.setModel("/gemfield/hostpv/lihang/github/libdeepvac/install/lib/deepvac/ocr.db.deepvac");
+    ocr_detect.setModel("ocr.db.deepvac");
 
     std::vector<std::vector<bool>> perm;
     std::vector<bool> tf {false, true};
