@@ -35,18 +35,12 @@ int main(int argc, char** argv)
     ocr_detect.setDevice(device);
     ocr_detect.setModel("/gemfield/hostpv/lihang/github/libdeepvac/install/lib/deepvac/ocr.db.deepvac");
 
-    std::vector<std::vector<bool>> perm;
-    std::vector<bool> tf {false, true};
-    for(int i=0; i<tf.size(); ++i){
-        for(int j=0; j<tf.size(); ++j){
-            for(int k=0; k<tf.size(); ++k){
-                for(int v=0; v<tf.size(); ++v){
-                    std::vector<bool> item {tf[i], tf[j], tf[k], tf[v]};
-                    perm.push_back(item);
-                }
-            }
-        }
-    }
+    std::vector<std::bitset<4>> perm;
+
+    for(int i=0;i<16;i++){
+        std::bitset<4> flag = i;
+        perm.push_back(flag);
+    }    
     auto mat_opt = gemfield_org::img2CvMat(path);
     if(!mat_opt){
         throw std::runtime_error("illegal image detected");
