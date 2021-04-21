@@ -44,7 +44,6 @@ int main(int argc, char** argv)
     auto mat_opt = gemfield_org::img2CvMat(path);
     if(!mat_opt){
         throw std::runtime_error("illegal image detected");
-        return 1;
     }
 
     for(int idx=0; idx<perm.size(); ++idx){
@@ -58,7 +57,6 @@ int main(int argc, char** argv)
         auto detect_out_opt = ocr_detect.process(mat_out);
         if(!detect_out_opt){
             throw std::runtime_error("no text detected");
-	        return 0;
         }
 
         std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> detect_out = detect_out_opt.value();
