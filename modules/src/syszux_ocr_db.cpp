@@ -149,7 +149,7 @@ void SyszuxOcrDB::getContourArea(const std::vector<std::vector<float>> &box, flo
     float dist = 0.0f;
     for (int i = 0; i < pts_num; i++) {
         area += box[i][0] * box[(i + 1) % pts_num][1] - box[i][1] * box[(i + 1) % pts_num][0];
-	dist += sqrtf(std::pow(box[i][0]-box[(i + 1)%pts_num][0], 2) + std::pow(box[i][1] - box[(i + 1) % pts_num][1], 2));
+        dist += sqrtf(std::pow(box[i][0]-box[(i + 1)%pts_num][0], 2) + std::pow(box[i][1] - box[(i + 1) % pts_num][1], 2));
     }
     area = fabs(float(area / 2.0));
     distance = area * unclip_ratio_ / dist;
