@@ -9,6 +9,12 @@
 #include <assert.h>
 
 using namespace deepvac;
+
+inline std::string BoolToString(bool b)
+{
+    return b ? "true" : "false";
+}
+
 int main(int argc, char** argv)
 {
     if (argc != 3) {
@@ -29,40 +35,62 @@ int main(int argc, char** argv)
     ocr_detect.setDevice(device);
     ocr_detect.setModel("/gemfield/hostpv/lihang/github/libdeepvac/install/lib/deepvac/ocr.db.deepvac");
 
-    ocr_detect.set(long_size, crop_gap, text_min_area, text_min_size, text_mean_score, text_thresh, unclip_ratio);
+    std::vector<std::vector<bool>> perm;
+    std::vector<bool> tf {false, true};
+    for(int i=0; i<tf.size(); ++i){
+        for(int j=0; j<tf.size(); ++j){
+            for(int k=0; k<tf.size(); ++k){
+                for(int v=0; v<tf.size(); ++v){
+                    std::vector<bool> item {tf[i], tf[j], tf[k], tf[v]};
+                    perm.push_back(item);
+                }
+            }
+        }
+    }
     auto mat_opt = gemfield_org::img2CvMat(path);
     if(!mat_opt){
         throw std::runtime_error("illegal image detected");
         return 1;
     }
-    auto mat_out = mat_opt.value();
-    auto detect_out_opt = ocr_detect.process(mat_out);
-    if(!detect_out_opt){
-        throw std::runtime_error("no text detected");
-	return 0;
-    }
 
-    std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> detect_out = detect_out_opt.value();
-    std::vector<cv::Mat> crop_imgs = detect_out.first;
-    std::vector<std::vector<int>> rects = detect_out.second;
-
-    if (crop_imgs.size()==0) {
-        std::cout << "no text detected" << std::endl;
-        return 0;
-    }
-    for (int i=0; i<crop_imgs.size(); i++) {
-        cv::imwrite("./ocr_detect_test" + std::to_string(i) + ".jpg", crop_imgs[i]);
-        std::cout << "rect: " << rects[i] << std::endl;
-    }
-    for (int i=0; i<rects.size(); ++i){
-        std::vector<cv::Point> vPolygonPoint;
-        int pts = rects[i].size();
-        assert(pts%2==0);
-        for(int j=0; j<pts; j=j+2){
-            vPolygonPoint.push_back(cv::Point(rects[i][j],rects[i][j+1]));
+    for(int idx=0; idx<perm.size(); ++idx){
+        ocr_detect.setGlab(perm[idx][0]);
+        ocr_detect.setExtend(perm[idx][1]);
+        ocr_detect.setUnclip(perm[idx][2]);
+        ocr_detect.setPolygonScore(perm[idx][3]);
+        std::string save_name = "glab_"+BoolToString(perm[idx][0])+"_extend_"+BoolToString(perm[idx][1])+"_unclip_"+BoolToString(perm[idx][2])+"_polygonscore_"+BoolToString(perm[idx][3])+".jpg";
+        cv::Mat mat_out;
+        mat_opt.value().copyTo(mat_out);
+        auto detect_out_opt = ocr_detect.process(mat_out);
+        if(!detect_out_opt){
+            throw std::runtime_error("no text detected");
+	        return 0;
         }
-	cv::polylines(mat_out, vPolygonPoint, true, cv::Scalar(0, 0, 255), 2, 4);
+
+        std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> detect_out = detect_out_opt.value();
+        std::vector<cv::Mat> crop_imgs = detect_out.first;
+        std::vector<std::vector<int>> rects = detect_out.second;
+
+        if (crop_imgs.size()==0) {
+            std::cout << "no text detected" << std::endl;
+            return 0;
+        }
+        for (int i=0; i<crop_imgs.size(); i++) {
+            cv::imwrite("./ocr_detect_test" + std::to_string(i) + ".jpg", crop_imgs[i]);
+            std::cout << "rect: " << rects[i] << std::endl;
+        }
+        cv::Mat mat_vis;
+        mat_opt.value().copyTo(mat_vis);
+        for (int i=0; i<rects.size(); ++i){
+            std::vector<cv::Point> vPolygonPoint;
+            int pts = rects[i].size();
+            assert(pts%2==0);
+            for(int j=0; j<pts; j=j+2){
+                vPolygonPoint.push_back(cv::Point(rects[i][j],rects[i][j+1]));
+            }
+	        cv::polylines(mat_vis, vPolygonPoint, true, cv::Scalar(0, 0, 255), 2, 4);
+        }
+        cv::imwrite(save_name, mat_vis);
     }
-    cv::imwrite("./vis.jpg", mat_out);
     return 0;
 }

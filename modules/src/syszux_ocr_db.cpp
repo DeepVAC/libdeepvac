@@ -8,13 +8,31 @@
 
 namespace deepvac {
 
-void SyszuxOcrDB::set(int long_size, int crop_gap, int text_min_area, int text_min_size, float text_mean_score, float text_thresh, float unclip_ratio){
+void SyszuxOcrDB::setLongSize(int long_size){
     long_size_ = long_size;
+}
+
+void SyszuxOcrDB::setCropGap(int crop_gap){
     crop_gap_ = crop_gap;
+}
+
+void SyszuxOcrDB::setTextMinArea(int text_min_area){
     text_min_area_ = text_min_area;
+}
+
+void SyszuxOcrDB::setTextMinSize(int text_min_size){
     text_min_size_ = text_min_size;
+}
+
+void SyszuxOcrDB::setTextMeanScore(float text_mean_score){
     text_mean_score_ = text_mean_score;
+}
+
+void SyszuxOcrDB::setTextThresh(float text_thresh){
     text_thresh_ = text_thresh;
+}
+
+void SyszuxOcrDB::setUnclipRatio(float unclip_ratio){
     unclip_ratio_ = unclip_ratio;
 }
 
@@ -240,7 +258,9 @@ std::optional< std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>> > 
         // dilated text box
         if(is_unclip_){
             auto unclip_rect = unClip(rect);
-            if(unclip_rect) db_detect_out.push_back(unclip_rect.value());
+            if(unclip_rect){
+                db_detect_out.push_back(unclip_rect.value());
+            }
             continue;
         }
         if(rect.size.width >= rect.size.height){

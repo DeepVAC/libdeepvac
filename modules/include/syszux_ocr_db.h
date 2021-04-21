@@ -26,9 +26,15 @@ class SyszuxOcrDB : public Deepvac {
         virtual ~SyszuxOcrDB() = default;
     public:
         std::optional<std::pair<std::vector<cv::Mat>, std::vector<std::vector<int>>>> process(cv::Mat frame);
-        void set(int long_size, int crop_gap, int text_min_area, int text_min_size, float text_mean_score, float text_thresh, float unclip_ratio);
+        void setLongSize(int long_size);
+        void setCropGap(int crop_gap);
+        void setTextMinArea(int text_min_area);
+        void setTextMinSize(int text_min_size);
+        void setTextMeanScore(float text_mean_score);
+        void setTextThresh(float text_thresh);
+        void setUnclipRatio(float unclip_ratio);
         void setGlab(bool is_glab);
-	void setExtend(bool is_extend);
+        void setExtend(bool is_extend);
         void setUnclip(bool is_unclip);
         void setPolygonScore(bool is_polygon_score);
     private:
@@ -44,7 +50,7 @@ class SyszuxOcrDB : public Deepvac {
         int text_min_size_{3};
         float text_mean_score_{0.5};
         float text_thresh_{0.3};
-        float unclip_ratio_{1.5};
+        float unclip_ratio_{2.0};
         bool is_glab_{false};
         bool is_extend_{false};
         bool is_unclip_{false};
