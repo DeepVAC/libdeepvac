@@ -80,30 +80,34 @@ libdeepvac基于CMake进行构建。
 
 
 ## 下载依赖
-假设你使用的是MLab HomePod，那么你只需要下载opencv库、libtorch库：
+**如果你使用的是MLab HomePod 2.0 pro（或者以上版本），则忽略此小节**。  
+如果你使用的是自定义环境，那么你至少需要下载opencv库、libtorch库：
 - opencv动态库：自行apt下载；
 - opencv静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/opencv4deepvac.tar.gz 
-- libtorch动态库：内置在MLab HomePod的/opt/conda/lib/python3.8/site-packages/torch/目录下；
+- libtorch动态库：自行从PyTorch官网下载；
 - libtorch静态库：https://github.com/DeepVAC/libdeepvac/releases/download/1.9.0/libtorch.tar.gz 
 
-你亦可以在MLab HomePod上自行从源码编译上述的依赖库。
+你亦可以在MLab HomePod 2.0 pro上自行从源码编译上述的依赖库。
 
 
 ## CMake命令
 以下命令所使用路径均基于MLab HomePod 2.0 pro（你可以根据自身环境自行更改）。
 #### 预备工作
 ```bash
+# update to latest libdeepvac
+gemfield@homepod2:/opt/gemfield/libdeepvac$ git pull --rebase
 # create build directory
 gemfield@homepod2:/opt/gemfield/libdeepvac$ mkdir build
 gemfield@homepod2:/opt/gemfield/libdeepvac$ cd build
 ```
 
 #### CMake
-- 在X86_64 GPU服务器上，使用CUDA，使用libtorch静态库，且用MKL作为BLAS/LAPACK库：
+libdeepvac内置了诸多cmake开关以支持不同的软硬件开发栈：
+- 在X86_64 GPU服务器上，使用CUDA，使用libtorch静态库，且用MKL作为BLAS/LAPACK库 (MLab HomePod 2.0 pro支持)：
 ```bash
 cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DUSE_STATIC_LIBTORCH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/libtorch;/opt/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install ..
 ```
-- 在X86_64 GPU服务器上，使用CUDA，使用libtorch动态库，且用MKL作为BLAS/LAPACK库：
+- 在X86_64 GPU服务器上，使用CUDA，使用libtorch动态库，且用MKL作为BLAS/LAPACK库 (MLab HomePod 2.0 pro支持)：
 ```bash
 cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
 ```
@@ -123,8 +127,13 @@ make install
 如何在自己的项目中使用libdeepvac预编译库呢？
 ## 1. 添加find_package(Deepvac REQUIRED)
 在自己项目的CMakeLists.txt中，添加
-```
+```cmake
 find_package(Deepvac REQUIRED)
+```
+当然，基于libdeepvac的项目也必然基于opencv和libtorch，因此，下面两个find_package也是必须的：
+```cmake
+find_package(Torch REQUIRED)
+find_package(OpenCV REQUIRED)
 ```
 
 ## 2. 使用libdeepvac提供的头文件cmake变量
@@ -157,15 +166,23 @@ libdeepvac会提供不同目标平台及不同推理引擎的benchmark，当前�
 
 ## 1. X86-64 Linux + LibTorch的benchmark步骤
 - 部署[MLab HomePod](https://github.com/DeepVAC/MLab#1-%E9%83%A8%E7%BD%B2);
-- 克隆本项目 
-```git clone https://github.com/DeepVAC/libdeepvac```
+- 克隆本项目：
+```bash
+# 如果是MLab HomePod 2.0 标准版
+git clone https://github.com/DeepVAC/libdeepvac && cd libdeepvac
+
+# 如果是MLab HomePod 2.0 pro版
+cd /opt/gemfield/libdeepvac && git pull --rebase
+```
 - 编译
 ```bash
 #新建编译目录
 mkdir build
 cd build
-#cmake
-cmake -DGARRULOUS_GEMFIELD=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<your_opencv_dir>;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
+#cmake(如果基于LibTorch动态库)
+cmake -DGARRULOUS_GEMFIELD=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac/;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
+#cmake(如果基于LibTorch静态库)
+cmake -DGARRULOUS_GEMFIELD=ON -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac/;/opt/gemfield/libtorch/" -DCMAKE_INSTALL_PREFIX=../install ..
 #编译
 make -j4
 ```
