@@ -19,6 +19,7 @@ libdeepvac作为一个Linux库，在以下四个方面发挥了价值：
 |-----|------|------|
 |SyszuxFaceRetina| RetinaNet | 人脸检测|
 |SyszuxOcrPse | PSENet | 文字检测 |
+|SyszuxOcrDB  | DB Net | 文字检测 |
 |SyszuxSegEsp | ESPNetV2 | 语义分割 |
 |SyszuxClsMobile | MobileNetV3 | 分类 |
 |SyszuxDetectYolo | YOLOV5 | 目标检测 |
@@ -57,7 +58,7 @@ libdeepvac支持以下目标平台的编译：
 
 # 项目依赖
 libdeepvac的编译依赖C++14编译器、CMake、opencv、LibTorch。  
-最简便、高效的方式就是使用我们提供的[MLab HomePod](https://github.com/DeepVAC/MLab#1-%E9%83%A8%E7%BD%B2)。使用MLab HomePod也是我们推荐的方式。
+最简便、高效的方式就是使用我们提供的[MLab HomePod](https://github.com/DeepVAC/MLab#mlab-homepod)。使用MLab HomePod也是我们推荐的方式。
 
 # 如何编译libdeepvac
 libdeepvac基于CMake进行构建。
@@ -89,27 +90,27 @@ libdeepvac基于CMake进行构建。
 
 
 ## CMake命令
-
+以下命令所使用路径均基于MLab HomePod 2.0 pro（你可以根据自身环境自行更改）。
 #### 预备工作
 ```bash
 # create build directory
-mkdir build
-cd build
+gemfield@homepod2:/opt/gemfield/libdeepvac$ mkdir build
+gemfield@homepod2:/opt/gemfield/libdeepvac$ cd build
 ```
 
 #### CMake
 - 在X86_64 GPU服务器上，使用CUDA，使用libtorch静态库，且用MKL作为BLAS/LAPACK库：
 ```bash
-cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DUSE_STATIC_LIBTORCH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/gemfield/libtorch;/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install .. 
+cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DUSE_STATIC_LIBTORCH=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/libtorch;/opt/gemfield/opencv4deepvac/" -DCMAKE_INSTALL_PREFIX=../install ..
 ```
 - 在X86_64 GPU服务器上，使用CUDA，使用libtorch动态库，且用MKL作为BLAS/LAPACK库：
 ```bash
-cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/public/airlock/opencv4deepvac;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
+cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
 ```
 
 - 在Nvidia Jetson Xavier NX上，使用TensorRT，且用系统的blas和lapack库：
 ```bash
-cmake -DUSE_CUDA=ON -DUSE_NUMA=ON -DUSE_TENSORRT=ON -DSYSTEM_LAPACK_LIBRARIES="-lblas -llapack" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/home/gemfield/github/opencv4deepvac/;/home/gemfield/github/libtorch" -DCMAKE_INSTALL_PREFIX=../install ..
+cmake -DUSE_CUDA=ON -DUSE_NUMA=ON -DUSE_TENSORRT=ON -DSYSTEM_LAPACK_LIBRARIES="-lblas -llapack" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac/;/opt/gemfield/libtorch" -DCMAKE_INSTALL_PREFIX=../install ..
 ```
 
 #### 编译
@@ -118,7 +119,7 @@ cmake --build . --config Release
 make install
 ```
 
-# 如何使用libdeepva库
+# 如何使用libdeepvac库
 如何在自己的项目中使用libdeepvac预编译库呢？
 ## 1. 添加find_package(Deepvac REQUIRED)
 在自己项目的CMakeLists.txt中，添加
