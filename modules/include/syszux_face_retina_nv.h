@@ -24,10 +24,6 @@ class SyszuxFaceRetinaNV : public DeepvacNV, public SyszuxFaceRetinaConfig {
         SyszuxFaceRetinaNV& operator=(SyszuxFaceRetinaNV&&) = default;
         virtual ~SyszuxFaceRetinaNV() = default;
         virtual std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> process(cv::Mat frame);
-
-    private:
-        void setDynamicInputOutput(float* data, const int inputC, const int inputH, const int inputW);
-        int calculatePriorBox(const int h, const int w);
 };
 
 } //namespace deepvac

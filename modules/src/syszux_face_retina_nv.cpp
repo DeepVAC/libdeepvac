@@ -15,12 +15,12 @@
 namespace deepvac{
 SyszuxFaceRetinaNV::SyszuxFaceRetinaNV(std::string path, std::string device):DeepvacNV(path, device) {
     initParameter(device);
-    setBinding(4);
+    setBinding(trt_module_->getNbBindings());
 }
 
 SyszuxFaceRetinaNV::SyszuxFaceRetinaNV(std::vector<unsigned char>&& buffer, std::string device):DeepvacNV(std::move(buffer), device){
     initParameter(device);
-    setBinding(4);
+    setBinding(trt_module_->getNbBindings());
 }
 
 std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<float>>>> SyszuxFaceRetinaNV::process(cv::Mat frame){
@@ -54,24 +54,22 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
         last_lmk_scale_ = last_lmk_scale_.to(device_);
     }
 
-    cv::Mat dst;
-    frame.convertTo(dst, CV_32F);
+    auto input_tensor_opt = gemfield_org::cvMat2Tensor(std::move(frame), gemfield_org::NO_NORMALIZE, gemfield_org::MEAN_STD_FROM_FACE, device_);
+    if(!input_tensor_opt){
+        return std::nullopt;
+    }
 
-    setDynamicInputOutput((float*)dst.data, c, last_h_, last_w_);
-    std::vector<void*> predicitonBindings = {datas_[0].deviceBuffer.data(), datas_[1].deviceBuffer.data(), datas_[2].deviceBuffer.data(), datas_[3].deviceBuffer.data()};
+    auto predicitonBindings = prepareInputOutput(input_tensor_opt.value());
     auto predict = forward(predicitonBindings.data());
-
-    //Nx4    //Nx2    //Nx10
-    auto prior_nums = calculatePriorBox(last_h_, last_w_);
     torch::Tensor loc, landms, forward_conf;
     for(int i = 1; i < 4; ++i) {
-        auto channel = trt_module_->getBindingDimensions(i).d[2];
+        auto channel = datas_[i].deviceBuffer.shape()[2];
         if(4 == channel) {
-            loc = torch::from_blob(datas_[i].deviceBuffer.data(), {1, prior_nums, 4}, torch::kCUDA);
+            loc = datas_[i].deviceBuffer.toTensor();
         } else if(2 == channel) {
-            forward_conf = torch::from_blob(datas_[i].deviceBuffer.data(), {1, prior_nums, 2}, torch::kCUDA);
+            forward_conf = datas_[i].deviceBuffer.toTensor();
         } else if(10 == channel) {
-            landms = torch::from_blob(datas_[i].deviceBuffer.data(), {1, prior_nums, 10}, torch::kCUDA);
+            landms = datas_[i].deviceBuffer.toTensor();
         } else {
             GEMFIELD_E("face detect model error, invalid output dims");
         }
@@ -146,45 +144,6 @@ std::optional<std::vector<std::tuple<cv::Mat, std::vector<float>, std::vector<fl
     }
 
     return faces_info;
-}
-
-void SyszuxFaceRetinaNV::setDynamicInputOutput(float* data, const int inputC, const int inputH, const int inputW) {
-    //input
-    datas_[0].hostBuffer.resize(nvinfer1::Dims4{1, inputC, inputH, inputW});
-    datas_[0].deviceBuffer.resize(nvinfer1::Dims4{1, inputC, inputH, inputW});
-    auto hostDataBuffer = static_cast<float*>(datas_[0].hostBuffer.data());
-    int mean[] = {104, 117, 123};
-    for (int c = 0; c < inputC; ++c) {
-        for(int j = 0, volChl=inputH*inputW; j < volChl; ++j) {
-            hostDataBuffer[c*volChl + j] = data[j*inputC + c] - mean[c];
-        }
-    }
-    cudaMemcpy(datas_[0].deviceBuffer.data(), datas_[0].hostBuffer.data(), datas_[0].hostBuffer.nbBytes(), cudaMemcpyHostToDevice);
-    trt_context_->setBindingDimensions(0, nvinfer1::Dims4{1, inputC, inputH, inputW});
-    //output
-    auto nums = calculatePriorBox(inputH, inputW);
-    for(int i = 1; i < 4; ++i) {
-        auto channel = trt_module_->getBindingDimensions(i).d[2];
-        datas_[i].hostBuffer.resize(nvinfer1::Dims3{1, nums, channel});
-        datas_[i].deviceBuffer.resize(nvinfer1::Dims3{1, nums, channel});
-    }
-}
-
-int SyszuxFaceRetinaNV::calculatePriorBox(const int h, const int w) {
-    std::vector<int> steps_{8,16,32};
-    std::vector<std::vector<int>> feature_maps;
-
-    for(int i=0; i<steps_.size(); i++){
-        feature_maps.push_back({ static_cast<int>(std::ceil(1.0 * h/steps_[i])), static_cast<int>(std::ceil(1.0 * w/steps_[i])) });
-    }
-
-    int nums = 0;
-    for(int i = 0; i < feature_maps.size(); ++i) {
-        int fh = feature_maps[i][0];
-        int fw = feature_maps[i][1];
-        nums += fh * fw * 2;
-    }
-    return nums;    
 }
 
 } //namespace deepvac

@@ -1,110 +1,154 @@
 #pragma once
 
+#include <algorithm>
 #include <cuda_runtime_api.h>
 #include <numeric>
-#include "NvInfer.h"
-
+#include <torch/script.h>
+#include <vector>
 
 namespace gemfield_org{
 
-inline unsigned int getElementSize(nvinfer1::DataType t){
+enum class DataType : int32_t {
+    kFLOAT = 0,
+    kHALF = 1,
+    kINT8 = 2,
+    kINT32 = 3,
+    kBOOL = 4
+};
+
+enum class DeviceType {
+    CPU,
+    CUDA
+};
+
+inline unsigned int getElementSize(DataType t){
     switch (t){
-        case nvinfer1::DataType::kINT32: return 4;
-        case nvinfer1::DataType::kFLOAT: return 4;
-        case nvinfer1::DataType::kHALF: return 2;
-        case nvinfer1::DataType::kBOOL:
-        case nvinfer1::DataType::kINT8: return 1;
+        case DataType::kINT32: return 4;
+        case DataType::kFLOAT: return 4;
+        case DataType::kHALF: return 2;
+        case DataType::kBOOL:
+        case DataType::kINT8: return 1;
     }
     throw std::runtime_error("Invalid DataType.");
     return 0;
 }
 
-inline int64_t volume(const nvinfer1::Dims& d){
-    return std::accumulate(d.d, d.d + d.nbDims, 1, std::multiplies<int64_t>());
+inline int64_t volume(const std::vector<int64_t>& d){
+    return std::accumulate(d.begin(), d.end(), 1, std::multiplies<int64_t>());
 }
 
-template <typename AllocFunc, typename FreeFunc>
+template <typename AllocFunc, typename FreeFunc, DeviceType Device>
 class GenericBuffer
 {
     public:
-        GenericBuffer(nvinfer1::DataType type = nvinfer1::DataType::kFLOAT)
-            : size_(0), capacity_(0), type_(type), buffer_(nullptr){}
+        GenericBuffer(DataType type = DataType::kFLOAT)
+            : size_(0), type_(type), buffer_(nullptr), cleanup_(true) {}
 
-        GenericBuffer(size_t size, nvinfer1::DataType type): size_(size), capacity_(size), type_(type){
-            if (!alloc_fn_(&buffer_, this->nbBytes())){
-                throw std::bad_alloc();
-            }
-        }
+        GenericBuffer(void* buffer, const std::vector<int64_t>& shape, const DataType& type): size_(volume(shape)), shape_(shape), type_(type), 
+                                                                                            buffer_(buffer), cleanup_(false) {}
 
         GenericBuffer(GenericBuffer&& buf)
-            : size_(buf.size_), capacity_(buf.capacity_), type_(buf.type_), buffer_(buf.buffer_){
-            buf.size_ = 0;
-            buf.capacity_ = 0;
-            buf.type_ = nvinfer1::DataType::kFLOAT;
-            buf.buffer_ = nullptr;
+            : size_(buf.size_),  shape_(std::move(buf.shape_)), type_(buf.type_), buffer_(buf.buffer_), cleanup_(buf.cleanup_) {
+            buf.reset();
         }
 
-        GenericBuffer& operator=(GenericBuffer&& buf){
-            if (this != &buf){
-                free_fn_(buffer_);
+        GenericBuffer& operator=(GenericBuffer&& buf) {
+            if (this != &buf) {
+                if(cleanup_) {
+                    free_fn_(buffer_);
+                }
                 size_ = buf.size_;
-                capacity_ = buf.capacity_;
+                shape_ = std::move(buf.shape_);
                 type_ = buf.type_;
                 buffer_ = buf.buffer_;
-                buf.size_ = 0;
-                buf.capacity_ = 0;
-                buf.buffer_ = nullptr;
+                cleanup_ = buf.cleanup_;
+                buf.reset();
             }
             return *this;
         }
 
-        void* data(){
+        void* data() {
             return buffer_;
         }
 
-        const void* data() const{
+        const void* data() const {
             return buffer_;
         }
 
-        size_t size() const{
+        size_t size() const {
             return size_;
         }
 
-        size_t nbBytes() const{
+        size_t nbBytes() const {
             return this->size() * getElementSize(type_);
         }
 
-        void resize(size_t newSize){
-            size_ = newSize;
-            if (capacity_ != newSize){
+        std::vector<int64_t> shape() const {
+            return shape_;
+        }
+
+        void resize(const std::vector<int64_t>& shape) {
+            shape_ = shape;
+            auto new_size = volume(shape_);
+
+            if(size_ == new_size) {
+                return;
+            }
+            if(cleanup_) {
                 free_fn_(buffer_);
-                if (!alloc_fn_(&buffer_, this->nbBytes())){
-                    throw std::bad_alloc{};
-                }
-                capacity_ = newSize;
+            }
+            if(!alloc_fn_(&buffer_, new_size*getElementSize(type_))) {
+                throw std::bad_alloc{};
+            }
+            size_ = new_size;
+            cleanup_ = true;
+        }
+
+        void fromTensor(const at::Tensor& tensor) {
+            auto contiguous_tensor = tensor.contiguous();
+            auto* input_data = static_cast<float*>(contiguous_tensor.to("cpu").data_ptr());
+            auto sizes = contiguous_tensor.sizes();
+            std::vector<int64_t> shape;
+            std::copy(sizes.begin(), sizes.end(), std::back_inserter(shape));
+            resize(shape);
+            if(Device == DeviceType::CPU) {
+                memcpy(buffer_, input_data, nbBytes());
+            } else if(Device == DeviceType::CUDA) {
+                cudaMemcpy(buffer_, input_data, nbBytes(), cudaMemcpyHostToDevice);
             }
         }
 
-        void resize(const nvinfer1::Dims& dims){
-            return this->resize(volume(dims));
+        at::Tensor toTensor() {
+            return torch::from_blob(buffer_, shape_, Device == DeviceType::CPU ? torch::kCPU : torch::kCUDA);
         }
 
-        ~GenericBuffer(){
-            free_fn_(buffer_);
+        ~GenericBuffer() {
+            if(cleanup_) {
+                free_fn_(buffer_);
+            }
         }
 
     private:
-        size_t size_{0}, capacity_{0};
-        nvinfer1::DataType type_;
+        void reset() {
+            size_ = 0;
+            buffer_ = nullptr;
+            shape_.clear();
+        }
+
+    private:
+        size_t size_;
+        std::vector<int64_t> shape_;
+        DataType type_;
         void* buffer_;
         AllocFunc alloc_fn_;
         FreeFunc free_fn_;
+        bool cleanup_;
 };
 
 class DeviceAllocator
 {
     public:
-        bool operator()(void** ptr, size_t size) const{
+        bool operator()(void** ptr, size_t size) const {
             return cudaMalloc(ptr, size) == cudaSuccess;
         }
 };
@@ -134,8 +178,8 @@ class HostFree
         }
 };
 
-using DeviceBuffer = GenericBuffer<DeviceAllocator, DeviceFree>;
-using HostBuffer = GenericBuffer<HostAllocator, HostFree>;
+using DeviceBuffer = GenericBuffer<DeviceAllocator, DeviceFree, DeviceType::CUDA>;
+using HostBuffer = GenericBuffer<HostAllocator, HostFree, DeviceType::CPU>;
 
 class ManagedBuffer
 {

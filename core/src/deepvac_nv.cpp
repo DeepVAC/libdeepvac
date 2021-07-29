@@ -51,8 +51,7 @@ DeepvacNV::DeepvacNV(std::vector<unsigned char>&& buffer, std::string device){
 
 void DeepvacNV::setBinding(int io_num) {
     for(int i = 0; i < io_num; ++i) {
-        gemfield_org::ManagedBuffer buffer{};
-        datas_.emplace_back(std::move(buffer));
+        datas_.emplace_back(gemfield_org::ManagedBuffer());
     }
 }
 
@@ -77,4 +76,28 @@ void DeepvacNV::setModel(const char* model_path) {
         runtime = nullptr;
     }
 }
+
+std::vector<void*> DeepvacNV::prepareInputOutput(const at::Tensor& input) {
+    auto sizes = input.sizes();
+    nvinfer1::Dims dim;
+    dim.nbDims = sizes.size();
+    std::copy(sizes.begin(), sizes.end(), dim.d);
+    trt_context_->setBindingDimensions(0, dim);
+    auto nb_bind = trt_module_->getNbBindings();
+    //input
+    datas_[0].deviceBuffer.fromTensor(input);
+    //output
+    for(auto i = 1; i < nb_bind; ++i) {
+        auto dims = trt_context_->getBindingDimensions(i);
+        std::vector<int64_t> shape;
+        std::copy(dims.d, dims.d+dims.nbDims, std::back_inserter(shape));
+        datas_[i].deviceBuffer.resize(shape);
+    }
+    std::vector<void*> predicitonBindings;
+    for(auto i = 0; i < nb_bind; ++i) {
+        predicitonBindings.emplace_back(datas_[i].deviceBuffer.data());
+    }
+    return predicitonBindings;
+}
+
 } //namespace deepvac

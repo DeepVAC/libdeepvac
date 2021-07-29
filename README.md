@@ -111,7 +111,10 @@ cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DUSE_STATIC_LIBTORCH=ON -DCMAKE_BUILD_TYPE=Rel
 ```bash
 cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac;/opt/conda/lib/python3.8/site-packages/torch/" -DCMAKE_INSTALL_PREFIX=../install ..
 ```
-
+- 在X86_64 GPU服务器上，使用TensorRT和libtorch静态库，且用MKL作为BLAS/LAPACK库：
+```bash
+cmake -DUSE_MKL=ON -DUSE_CUDA=ON -DUSE_MAGMA=ON -DUSE_STATIC_LIBTORCH=ON -DUSE_TENSORRT=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac/;/opt/gemfield/libtorch" -DCMAKE_INSTALL_PREFIX=../install ..
+```
 - 在Nvidia Jetson Xavier NX上，使用TensorRT，且用系统的blas和lapack库：
 ```bash
 cmake -DUSE_CUDA=ON -DUSE_NUMA=ON -DUSE_TENSORRT=ON -DSYSTEM_LAPACK_LIBRARIES="-lblas -llapack" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/opt/gemfield/opencv4deepvac/;/opt/gemfield/libtorch" -DCMAKE_INSTALL_PREFIX=../install ..
