@@ -34,7 +34,6 @@ class SyszuxFaceIdNV : public DeepvacNV{
         std::vector<std::string> id2commit_vec_;
         at::Tensor db_;
         std::vector<std::string> id_vec_;
-
 };
 }//namespace
 

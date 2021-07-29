@@ -13,7 +13,8 @@
 #include "NvInfer.h"
 
 class TrtLogger : public nvinfer1::ILogger {
-    void log(Severity severity, const char* msg) override{
+    public:
+    void log(Severity severity, const char* msg) noexcept override{
         // suppress info-level messages
         if (severity != Severity::kVERBOSE){
             std::cout << msg << std::endl;
@@ -54,6 +55,9 @@ class DeepvacNV{
             bool s = trt_context_->executeV2(data);
             return data;
         }
+
+    protected:
+        std::vector<void*> prepareInputOutput(const at::Tensor& input);
 
     protected:
         //all data members must be movable !!

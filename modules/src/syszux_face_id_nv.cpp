@@ -19,10 +19,10 @@ SyszuxFaceIdNV::SyszuxFaceIdNV(std::vector<unsigned char>&& buffer, std::string 
 }
 
 void SyszuxFaceIdNV::initBinding() {
-    datas_[0].hostBuffer.resize(nvinfer1::Dims4{1, 3, 112, 112});
-    datas_[0].deviceBuffer.resize(nvinfer1::Dims4{1, 3, 112, 112});
-    datas_[1].hostBuffer.resize(nvinfer1::Dims2{1, 512});
-    datas_[1].deviceBuffer.resize(nvinfer1::Dims2{1, 512});
+    datas_[0].hostBuffer.resize({1, 3, 112, 112});
+    datas_[0].deviceBuffer.resize({1, 3, 112, 112});
+    datas_[1].hostBuffer.resize({1, 512});
+    datas_[1].deviceBuffer.resize({1, 512});
 }
 
 
